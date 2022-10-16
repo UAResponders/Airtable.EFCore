@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32414.318
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Airtable.EFCore", "Airtable.EFCore\Airtable.EFCore.csproj", "{FAC79D4C-FCED-4008-8444-0CAA660B4D4D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Airtable.EFCore.Sample", "Airtable.EFCore.Sample\Airtable.EFCore.Sample.csproj", "{5088C674-B54E-4DE4-872B-CB3F268F7C6D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FAC79D4C-FCED-4008-8444-0CAA660B4D4D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FAC79D4C-FCED-4008-8444-0CAA660B4D4D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FAC79D4C-FCED-4008-8444-0CAA660B4D4D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FAC79D4C-FCED-4008-8444-0CAA660B4D4D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5088C674-B54E-4DE4-872B-CB3F268F7C6D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5088C674-B54E-4DE4-872B-CB3F268F7C6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5088C674-B54E-4DE4-872B-CB3F268F7C6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5088C674-B54E-4DE4-872B-CB3F268F7C6D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {ABD0E1B2-A6CD-4D10-A9D7-65938B64789C}
+	EndGlobalSection
+EndGlobal
