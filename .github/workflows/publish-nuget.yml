@@ -27,7 +27,7 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal
     - name: publish
-      run: dotnet pack --no-build --verbosity normal --output ./obj/output
+      run: dotnet pack ./Airtable.EFCore/Airtable.EFCore.csproj --no-build --verbosity normal --output ./obj/output
     - name: Push generated package to GitHub registry
       run: dotnet nuget push ./obj/output/*.nupkg --skip-duplicate --source  https://nuget.pkg.github.com/uaresponders/index.json --api-key ${GITHUB_TOKEN} --no-symbols true
       env:
