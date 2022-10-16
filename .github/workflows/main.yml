@@ -24,10 +24,4 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal
     - name: Publish
-      run: dotnet pack ./Airtable.EFCore/Airtable.EFCore.csproj --no-build --output ./obj/output
-    - name: Upload a Build Artifact
-      uses: actions/upload-artifact@v3.1.0
-      with:
-        name: package
-        path: ./obj/output
-        retention-days: 14
+      run: dotnet pack ./Airtable.EFCore/Airtable.EFCore.csproj --no-build
