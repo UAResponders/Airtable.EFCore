@@ -10,11 +10,11 @@ namespace Airtable.EFCore.Storage.Internal;
 
 internal sealed class AirtableDatabase : Database
 {
-    private readonly AirtableBase _airtableBase;
+    private readonly IAirtableClient _airtableBase;
 
-    public AirtableDatabase(DatabaseDependencies dependencies, AirtableBaseWrapper airtableBase) : base(dependencies)
+    public AirtableDatabase(DatabaseDependencies dependencies, IAirtableClient airtableBase) : base(dependencies)
     {
-        _airtableBase = airtableBase.Base;
+        _airtableBase = airtableBase;
     }
 
     public override int SaveChanges(IList<IUpdateEntry> entries)
@@ -75,14 +75,57 @@ internal sealed class AirtableDatabase : Database
     }
 }
 
-public sealed class AirtableBaseWrapper
+public sealed class AirtableBaseWrapper : IAirtableClient
 {
-    public AirtableBase Base { get; }
+    private readonly AirtableBase _airtable;
 
     public AirtableBaseWrapper(IDbContextOptions dbContextOptions)
     {
         var options = dbContextOptions.FindExtension<AirtableOptionsExtension>() ?? throw new InvalidOperationException("Options don't have AirtableOptionsExtension");
 
-        Base = new AirtableBase(options.ApiKey, options.BaseId);
+        _airtable = new AirtableBase(options.ApiKey, options.BaseId);
     }
+
+    public Task<AirtableCreateUpdateReplaceRecordResponse> CreateRecord(string tableName, Fields fields)
+        => _airtable.CreateRecord(tableName, fields);
+
+    public Task DeleteRecord(string tableName, string? recordId) 
+        => _airtable.DeleteRecord(tableName, recordId);
+
+    public Task<AirtableListRecordsResponse?> ListRecords(
+        string tableName,
+        string? offset = null,
+        IEnumerable<string>? fields = null,
+        string? filterByFormula = null,
+        int? maxRecords = null,
+        int? pageSize = null,
+        IEnumerable<Sort>? sort = null,
+        string? view = null,
+        string? cellFormat = null,
+        string? timeZone = null,
+        string? userLocale = null,
+        bool returnFieldsByFieldId = false) => _airtable.ListRecords(tableName, offset, fields, filterByFormula, maxRecords, pageSize, sort, view, cellFormat, timeZone, userLocale, returnFieldsByFieldId);
+    
+    public Task<AirtableCreateUpdateReplaceRecordResponse> UpdateRecord(string tableName, Fields fields, string? recordId) 
+        => _airtable.UpdateRecord(tableName, fields, recordId);
+}
+
+public interface IAirtableClient
+{
+    Task<AirtableCreateUpdateReplaceRecordResponse> CreateRecord(string tableName, Fields fields);
+    Task DeleteRecord(string tableName, string? recordId);
+    Task<AirtableListRecordsResponse?> ListRecords(
+        string tableName,
+        string? offset = null,
+        IEnumerable<string>? fields = null,
+        string? filterByFormula = null,
+        int? maxRecords = null,
+        int? pageSize = null,
+        IEnumerable<Sort>? sort = null,
+        string? view = null,
+        string? cellFormat = null,
+        string? timeZone = null,
+        string? userLocale = null,
+        bool returnFieldsByFieldId = false);
+    Task<AirtableCreateUpdateReplaceRecordResponse> UpdateRecord(string tableName, Fields fields, string? recordId);
 }

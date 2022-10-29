@@ -7,14 +7,14 @@ namespace Airtable.EFCore.Query.Internal;
 internal sealed class AirtableQueryContextFactory : IQueryContextFactory
 {
     private readonly QueryContextDependencies _dependencies;
-    private readonly AirtableBase _airtableBase;
+    private readonly IAirtableClient _airtableBase;
 
     public AirtableQueryContextFactory(
         QueryContextDependencies dependencies,
-        AirtableBaseWrapper airtableBase)
+        IAirtableClient airtableBase)
     {
         _dependencies = dependencies;
-        _airtableBase = airtableBase.Base;
+        _airtableBase = airtableBase;
     }
 
     public QueryContext Create()
@@ -25,11 +25,11 @@ internal sealed class AirtableQueryContextFactory : IQueryContextFactory
 
 internal sealed class AirtableQueryContext : QueryContext
 {
-    public AirtableBase AirtableClient { get; }
+    public IAirtableClient AirtableClient { get; }
 
     public AirtableQueryContext(
-        QueryContextDependencies dependencies, 
-        AirtableBase airtableClient) : base(dependencies)
+        QueryContextDependencies dependencies,
+        IAirtableClient airtableClient) : base(dependencies)
     {
         AirtableClient = airtableClient;
     }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query;
+using System.Collections.Immutable;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -20,9 +21,9 @@ internal sealed class AirtableFormulaTranslatorExpressionVisitor : ExpressionVis
 
     protected override Expression VisitMember(MemberExpression node)
     {
-        if(node.Expression is EntityShaperExpression)
+        if (node.Expression is EntityShaperExpression)
         {
-            if(node.Member is PropertyInfo propertyInfo)
+            if (node.Member is PropertyInfo propertyInfo)
             {
                 var property = _entityType.FindProperty(propertyInfo) ?? throw new InvalidOperationException($"Failed to map property '{propertyInfo.Name}' on entity {_entityType.Name}");
 
@@ -51,6 +52,14 @@ internal sealed class AirtableFormulaTranslatorExpressionVisitor : ExpressionVis
     {
         var visitedLeft = Visit(node.Left) as FormulaExpression ?? throw new InvalidOperationException("Failed to translate\n" + node.Left);
         var visitedRight = Visit(node.Right) as FormulaExpression ?? throw new InvalidOperationException("Failed to translate\n" + node.Right);
+
+        if (visitedRight is FormulaConstantExpression constant && constant.Value is null)
+        {
+            if (node.NodeType == ExpressionType.Equal)
+                return _formulaExpressionFactory.MakeNot(visitedLeft);
+            if (node.NodeType == ExpressionType.NotEqual)
+                return visitedLeft;
+        }
 
         switch (node.NodeType)
         {

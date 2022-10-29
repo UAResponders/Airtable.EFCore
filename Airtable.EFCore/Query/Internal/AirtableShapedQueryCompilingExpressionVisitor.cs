@@ -1,4 +1,5 @@
 ﻿using Airtable.EFCore.Metadata.Conventions;
+using Airtable.EFCore.Storage.Internal;
 using AirtableApiClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -357,7 +358,7 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
         private readonly FormulaGenerator _formulaGenerator;
         private readonly Func<AirtableQueryContext, AirtableRecord, T> _shaper;
         private readonly bool _standalone;
-        private readonly AirtableBase _base;
+        private readonly IAirtableClient _base;
 
         public QueryingEnumerable(
             AirtableQueryContext airtableQueryContext,

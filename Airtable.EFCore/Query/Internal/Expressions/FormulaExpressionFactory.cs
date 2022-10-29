@@ -62,4 +62,5 @@ internal class FormulaExpressionFactory : IFormulaExpressionFactory
 
     public FormulaExpression MakeOr(params FormulaExpression[] expressions) 
         => LogicalFormulaExpression("OR", expressions);
+    public FormulaCallExpression MakeNot(FormulaExpression value) => new FormulaCallExpression("NOT", ImmutableList.Create(value), typeof(bool));
 }

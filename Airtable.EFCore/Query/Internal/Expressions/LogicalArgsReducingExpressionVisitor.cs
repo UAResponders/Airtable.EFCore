@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Airtable.EFCore.Query.Internal;
 
@@ -49,6 +50,40 @@ internal sealed class LogicalArgsReducingExpressionVisitor : FormulaExpressionVi
         }
 
         return callExpression;
+    }
+
+    protected override Expression VisitTableProperty(TablePropertyReferenceExpression tableProperty) => tableProperty;
+}
+
+
+
+internal sealed class TruthyValuesComparisonTransformingExpressionVisitor : FormulaExpressionVisitor
+{
+    protected override Expression VisitBinary(FormulaBinaryExpression binaryExpression)
+    {
+        var left = (FormulaExpression) Visit(binaryExpression.Left);
+        var right = (FormulaExpression) Visit(binaryExpression.Right);
+
+        if (right is FormulaConstantExpression constant && constant.Value is null)
+        {
+            if(binaryExpression.OperatorType == ExpressionType.Equal)
+                return new FormulaCallExpression("NOT", ImmutableList.Create(left), typeof(bool));
+            if(binaryExpression.OperatorType == ExpressionType.NotEqual)
+                return left;
+        }
+
+        return binaryExpression.Update(left, right);
+    }
+
+    protected override Expression VisitConstant(FormulaConstantExpression constantExpression) => constantExpression;
+    protected override Expression VisitFunction(FormulaCallExpression callExpression)
+    {
+        var visitedArgs = callExpression.Arguments.Select(Visit).OfType<FormulaExpression>().ToImmutableList();
+
+        if (visitedArgs.SequenceEqual(callExpression.Arguments))
+            return callExpression;
+
+        return new FormulaCallExpression(callExpression.FormulaName, visitedArgs, callExpression.Type);
     }
 
     protected override Expression VisitTableProperty(TablePropertyReferenceExpression tableProperty) => tableProperty;

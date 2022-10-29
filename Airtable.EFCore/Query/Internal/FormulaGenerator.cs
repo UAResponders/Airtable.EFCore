@@ -42,6 +42,7 @@ internal sealed class FormulaGenerator : FormulaExpressionVisitor
         var op = (binaryExpression.OperatorType) switch
         {
             ExpressionType.Equal => "=",
+            ExpressionType.NotEqual => "!=",
             ExpressionType.GreaterThan => ">",
             ExpressionType.LessThan => "<",
             ExpressionType.LessThanOrEqual => "<=",

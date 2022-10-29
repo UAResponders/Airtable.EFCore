@@ -28,7 +28,7 @@ public static class AirtableServiceCollectionExtensions
             .TryAdd<IQueryableMethodTranslatingExpressionVisitorFactory, AirtableQueryableMethodTranslatingExpressionVisitorFactory>()
             .TryAdd<IProviderConventionSetBuilder, AirtableConventionSetBuilder>()
             .TryAddProviderSpecificServices(
-                b => b.TryAddScoped<AirtableBaseWrapper, AirtableBaseWrapper>()
+                b => b.TryAddScoped<IAirtableClient, AirtableBaseWrapper>()
                       .TryAddScoped<IFormulaExpressionFactory, FormulaExpressionFactory>()
             )
             ;

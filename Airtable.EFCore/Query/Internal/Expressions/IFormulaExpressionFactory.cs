@@ -17,6 +17,7 @@ internal interface IFormulaExpressionFactory
     TablePropertyReferenceExpression MakeTablePropertyReference(IProperty property);
 
     FormulaConstantExpression MakeConstant(object? value);
+    FormulaCallExpression MakeNot(FormulaExpression value);
 
     FormulaExpression MakeAnd(params FormulaExpression[] expressions);
     FormulaExpression MakeOr(params FormulaExpression[] expressions);
