@@ -45,15 +45,21 @@ internal class FormulaExpressionFactory : IFormulaExpressionFactory
         return new FormulaConstantExpression(value, value?.GetType() ?? typeof(object));
     }
 
-    public FormulaExpression MakeAnd(params FormulaExpression[] expressions)
+    private FormulaExpression LogicalFormulaExpression(string formula, params FormulaExpression[] expressions)
     {
-        return 
+        return
             (FormulaExpression)
                 new LogicalArgsReducingExpressionVisitor()
                     .Visit(
                     new FormulaCallExpression(
-                        "AND", 
-                        expressions.ToImmutableList(), 
+                        formula,
+                        expressions.ToImmutableList(),
                         typeof(bool)));
     }
+
+    public FormulaExpression MakeAnd(params FormulaExpression[] expressions) 
+        => LogicalFormulaExpression("AND", expressions);
+
+    public FormulaExpression MakeOr(params FormulaExpression[] expressions) 
+        => LogicalFormulaExpression("OR", expressions);
 }

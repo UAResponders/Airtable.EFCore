@@ -19,4 +19,5 @@ internal interface IFormulaExpressionFactory
     FormulaConstantExpression MakeConstant(object? value);
 
     FormulaExpression MakeAnd(params FormulaExpression[] expressions);
+    FormulaExpression MakeOr(params FormulaExpression[] expressions);
 }

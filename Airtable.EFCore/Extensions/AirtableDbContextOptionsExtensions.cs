@@ -9,16 +9,16 @@ public static class AirtableDbContextOptionsExtensions
         this DbContextOptionsBuilder<TContext> optionsBuilder,
         string baseId,
         string apiKey,
-        Action<AirtableDbContextOptionsBuilder>? inMemoryOptionsAction = null)
+        Action<AirtableDbContextOptionsBuilder>? airtableOptionsAction = null)
         where TContext : DbContext
         => (DbContextOptionsBuilder<TContext>)UseAirtable(
-            (DbContextOptionsBuilder)optionsBuilder, baseId, apiKey, inMemoryOptionsAction);
+            (DbContextOptionsBuilder)optionsBuilder, baseId, apiKey, airtableOptionsAction);
 
     public static DbContextOptionsBuilder UseAirtable(
         this DbContextOptionsBuilder optionsBuilder,
         string baseId,
         string apiKey,
-        Action<AirtableDbContextOptionsBuilder>? inMemoryOptionsAction = null)
+        Action<AirtableDbContextOptionsBuilder>? airtableOptionsAction = null)
     {
         var extension = optionsBuilder.Options.FindExtension<AirtableOptionsExtension>() ?? new AirtableOptionsExtension();
 
@@ -28,7 +28,7 @@ public static class AirtableDbContextOptionsExtensions
 
         ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(extension);
 
-        inMemoryOptionsAction?.Invoke(new AirtableDbContextOptionsBuilder(optionsBuilder));
+        airtableOptionsAction?.Invoke(new AirtableDbContextOptionsBuilder(optionsBuilder));
 
         return optionsBuilder;
     }
