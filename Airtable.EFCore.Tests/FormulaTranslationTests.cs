@@ -14,39 +14,13 @@ using Moq;
 namespace Airtable.EFCore.Tests;
 
 [TestClass]
-public class FormulaTranslationTests
+public class FormulaTranslationTests : FinanceTestBase
 {
-    private static readonly AirtableRecordList _emptyList = JsonSerializer.Deserialize<AirtableRecordList>(@"{""records"":[]}");
 
     [TestMethod]
     public async Task TranslateNoExchangeRateQuery()
     {
-        var services = new ServiceCollection();
-
-        var clientMoq = new Mock<IAirtableClient>();
-        clientMoq.Setup(
-            i => i.ListRecords(
-                It.IsAny<string>(), 
-                It.IsAny<string>(),
-                It.IsAny<IEnumerable<string>>(),
-                It.IsAny<string>(),
-                It.IsAny<int?>(),
-                It.IsAny<int?>(),
-                It.IsAny<IEnumerable<Sort>>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<bool>()).Result)
-            .Returns(new AirtableListRecordsResponse(_emptyList));
-
-        services.AddEntityFrameworkAirtableDatabase();
-
-        services.AddSingleton(s => clientMoq.Object);
-
-        services.AddDbContext<FinanceDbContext>(o=>o.UseAirtable("dummy", "dummy").UseInternalServiceProvider(services.BuildServiceProvider()));
-
-        var sp = services.BuildServiceProvider();
+        var (sp, clientMoq) = SetupServices();
         using var scope = sp.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<FinanceDbContext>();
 

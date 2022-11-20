@@ -14,7 +14,7 @@ internal interface IFormulaExpressionFactory
         FormulaExpression right,
         CoreTypeMapping? typeMapping);
 
-    TablePropertyReferenceExpression MakeTablePropertyReference(IProperty property);
+    FormulaExpression MakeTablePropertyReference(IProperty property);
 
     FormulaConstantExpression MakeConstant(object? value);
     FormulaCallExpression MakeNot(FormulaExpression value);

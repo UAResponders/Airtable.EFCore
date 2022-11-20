@@ -1,31 +1,32 @@
-﻿using Airtable.EFCore.Metadata.Conventions;
-using Airtable.EFCore.Storage.Internal;
-using AirtableApiClient;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Query;
-using Microsoft.EntityFrameworkCore.Storage;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json;
+using Airtable.EFCore.Storage.Internal;
+using AirtableApiClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Airtable.EFCore.Query.Internal;
 
 internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQueryCompilingExpressionVisitor
 {
-    private abstract class AirtableProjecttionBindingRemovingVisitorBase : ExpressionVisitor
+    private abstract class AirtableProjectionBindingRemovingVisitorBase : ExpressionVisitor
     {
-        private static readonly MethodInfo _dictionaryTryGetValueMethod = 
+        private static readonly MethodInfo _dictionaryTryGetValueMethod =
             typeof(Dictionary<string, object>)
                 .GetMethod(
                     nameof(Dictionary<string, object>.TryGetValue))
                 ?? throw new InvalidOperationException("Could not find method TryGetValue");
 
         private static readonly MethodInfo _visitorReadSingleValueMethod =
-            typeof(AirtableProjecttionBindingRemovingVisitorBase)
+            typeof(AirtableProjectionBindingRemovingVisitorBase)
                 .GetMethod(
-                    nameof(AirtableProjecttionBindingRemovingVisitorBase.ReadSingleValue),
+                    nameof(AirtableProjectionBindingRemovingVisitorBase.ReadSingleValue),
                     BindingFlags.NonPublic | BindingFlags.Static,
                     new[] { typeof(JsonElement), typeof(JsonSerializerOptions) })
                 ?? throw new InvalidOperationException("Could not find method ReadSingleValue");
@@ -34,7 +35,7 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
         private readonly IDictionary<ParameterExpression, Expression> _materializationContextBindings
             = new Dictionary<ParameterExpression, Expression>();
 
-        protected AirtableProjecttionBindingRemovingVisitorBase(
+        protected AirtableProjectionBindingRemovingVisitorBase(
             ParameterExpression recordParameter,
             bool trackQueryResults)
         {
@@ -63,9 +64,9 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
                             projectionExpression = ((UnaryExpression)convertExpression.Operand).Operand;
                         }
 
-                        if(projectionExpression is EntityProjectionExpression entityProjectionExpression)
+                        if (projectionExpression is EntityProjectionExpression entityProjectionExpression)
                         {
-                            if(entityProjectionExpression.AccessExpression is RootReferenceExpression)
+                            if (entityProjectionExpression.AccessExpression is RootReferenceExpression)
                             {
                                 projectionExpression = _recordParameter;
                             }
@@ -106,9 +107,23 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
 
         protected override Expression VisitExtension(Expression node)
         {
-            if (node is ProjectionBindingExpression)
+            if (node is ProjectionBindingExpression projectionBindingExpression)
             {
-                return Expression.Convert(_recordParameter, typeof(AirtableRecord));
+                var projection = GetProjection(projectionBindingExpression);
+
+                if (projection.Expression is TablePropertyReferenceExpression tableProperty)
+                {
+                    return CreateGetValueExpression(
+                        _recordParameter,
+                        tableProperty.Name,
+                        projectionBindingExpression.Type);
+                }
+                else if (projection.Expression is RecordIdPropertyReferenceExpression)
+                {
+                    return CreateGetRecordIdExpression();
+                }
+
+                throw new InvalidOperationException();
             }
 
             return base.VisitExtension(node);
@@ -136,23 +151,17 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
                         (ParameterExpression)((MethodCallExpression)methodCallExpression.Arguments[0]).Object];
                 }
 
-                return CreateGetValueExpression(innerExpression, property, methodCallExpression.Type);
+                return CreateGetValueExpression(innerExpression, property);
             }
 
             return base.VisitMethodCall(methodCallExpression);
         }
 
-        private Expression CreateGetValueExpression(Expression innerExpression, IProperty property, Type type)
+        private Expression CreateGetValueExpression(Expression innerExpression, string name, Type type)
         {
-            if(property.IsPrimaryKey())
-            {
-                return Expression.Property(_recordParameter, nameof(AirtableRecord.Id));
-            }
-
-            var resultVariable = Expression.Variable(property.ClrType);
+            var resultVariable = Expression.Variable(type);
             var jsonElementObj = Expression.Variable(typeof(object));
             var fields = Expression.Variable(typeof(Dictionary<string, object>));
-
 
             var block = new List<Expression>();
             block.Add(
@@ -166,23 +175,23 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
                     Expression.Call(
                         fields,
                         _dictionaryTryGetValueMethod,
-                        Expression.Constant(property.GetColumnName() ?? property.Name),
+                        Expression.Constant(name),
                         jsonElementObj
                         ),
                     Expression.Assign(
                         resultVariable,
                         Expression.Call(
-                            _visitorReadSingleValueMethod.MakeGenericMethod(property.ClrType),
+                            _visitorReadSingleValueMethod.MakeGenericMethod(type),
                             Expression.Convert(
-                                jsonElementObj, 
+                                jsonElementObj,
                                 typeof(JsonElement)),
                             Expression.Default(typeof(JsonSerializerOptions)))),
-                    Expression.Assign(resultVariable, Expression.Default(property.ClrType))));
+                    Expression.Assign(resultVariable, Expression.Default(type))));
 
             block.Add(resultVariable);
 
             return Expression.Block(
-                property.ClrType,
+                type,
                 new[]
                 {
                     jsonElementObj,
@@ -192,10 +201,22 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
                 block);
         }
 
+        private Expression CreateGetValueExpression(Expression innerExpression, IProperty property)
+        {
+            if (property.IsPrimaryKey())
+            {
+                return CreateGetRecordIdExpression();
+            }
+
+            return CreateGetValueExpression(innerExpression, property.GetColumnName() ?? property.Name, property.ClrType);
+        }
+
+        private Expression CreateGetRecordIdExpression() => Expression.Property(_recordParameter, nameof(AirtableRecord.Id));
+
         [return: MaybeNull]
         private static T ReadSingleValue<T>(JsonElement jsonElement, JsonSerializerOptions jsonSerializerOptions)
         {
-            if(jsonElement.ValueKind == JsonValueKind.Array)
+            if (jsonElement.ValueKind == JsonValueKind.Array)
             {
                 return jsonElement.EnumerateArray().FirstOrDefault().Deserialize<T>(jsonSerializerOptions);
             }
@@ -212,22 +233,26 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
 
     }
 
-    private sealed class AirtableProjecttionBindingRemovingVisitor : AirtableProjecttionBindingRemovingVisitorBase
+    private sealed class AirtableProjecttionBindingRemovingVisitor : AirtableProjectionBindingRemovingVisitorBase
     {
         private readonly SelectExpression _selectExpression;
 
         public AirtableProjecttionBindingRemovingVisitor(
             SelectExpression selectExpression,
-            ParameterExpression recordParameter, 
+            ParameterExpression recordParameter,
             bool trackQueryResults) : base(recordParameter, trackQueryResults)
         {
             _selectExpression = selectExpression;
         }
 
-        protected override ProjectionExpression? GetProjection(ProjectionBindingExpression projectionBindingExpression)
-        {
-            return _selectExpression.GetProjection(projectionBindingExpression.ProjectionMember);
-        }
+        protected override ProjectionExpression GetProjection(ProjectionBindingExpression projectionBindingExpression)
+        => _selectExpression.Projection[GetProjectionIndex(projectionBindingExpression)];
+
+        private int GetProjectionIndex(ProjectionBindingExpression projectionBindingExpression)
+            => projectionBindingExpression.ProjectionMember != null
+                ? _selectExpression.GetMappedProjection(projectionBindingExpression.ProjectionMember).GetConstantValue<int>()
+                : (projectionBindingExpression.Index
+                    ?? throw new InvalidOperationException(CoreStrings.TranslationFailed(projectionBindingExpression.Print())));
     }
 
     private sealed class AirtableRecordInjectingExpressionVisitor : ExpressionVisitor
@@ -271,44 +296,6 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
         }
     }
 
-    private sealed class EntityMaterializerInjectingExpressionVisitor : ExpressionVisitor
-    {
-        private int _currentEntityIndex;
-
-        protected override Expression VisitExtension(Expression extensionExpression)
-            => extensionExpression is EntityShaperExpression entityShaperExpression
-                ? ProcessEntityShaper(entityShaperExpression)
-                : base.VisitExtension(extensionExpression);
-
-        private Expression ProcessEntityShaper(EntityShaperExpression entityShaperExpression)
-        {
-            _currentEntityIndex++;
-            var entityType = entityShaperExpression.EntityType;
-            var primaryKey = entityType.FindPrimaryKey();
-
-            if (primaryKey != null)
-            {
-                return Materialize(entityShaperExpression);
-            }
-
-            throw null;
-        }
-
-        private Expression Materialize(
-            EntityShaperExpression entityShaperExpression
-            )
-        {
-            var entityType = entityShaperExpression.EntityType;
-            var returnType = entityType.ClrType;
-            var expressions = new List<Expression>();
-
-            return
-                Expression.New(
-                    returnType.GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException($"Could not find parameterless constructor for {returnType.FullName}"));
-
-        }
-    }
-
     public AirtableShapedQueryCompilingExpressionVisitor(
         ShapedQueryCompilingExpressionVisitorDependencies dependencies,
         QueryCompilationContext queryCompilationContext)
@@ -320,6 +307,8 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
     {
         if (shapedQueryExpression.QueryExpression is SelectExpression selectExpression)
         {
+            selectExpression.ApplyProjection();
+
             var recordParameter = Expression.Parameter(typeof(AirtableRecord), "record");
 
             var shaper = shapedQueryExpression.ShaperExpression;
@@ -382,7 +371,7 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
 
             string? formula = null;
 
-            if(_selectExpression.FilterByFormula != null)
+            if (_selectExpression.FilterByFormula != null)
             {
                 formula = _formulaGenerator.GetFormula(_selectExpression.FilterByFormula);
             }
@@ -391,7 +380,7 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
             {
                 response = await _base.ListRecords(
                     _selectExpression.Table,
-                    fields: _selectExpression.SelectProperties,
+                    fields: _selectExpression.GetFields(),//_selectExpression.SelectProperties,
                     maxRecords: _selectExpression.Limit,
                     filterByFormula: formula,
                     offset: response?.Offset);

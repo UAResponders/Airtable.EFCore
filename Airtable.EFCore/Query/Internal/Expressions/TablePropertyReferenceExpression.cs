@@ -2,7 +2,10 @@
 
 namespace Airtable.EFCore.Query.Internal;
 
-internal sealed class TablePropertyReferenceExpression : FormulaExpression, IEquatable<TablePropertyReferenceExpression?>
+internal sealed class TablePropertyReferenceExpression :
+    FormulaExpression,
+    IEquatable<TablePropertyReferenceExpression?>,
+    IAccessExpression
 {
     public TablePropertyReferenceExpression(string name, Type type) : base(type)
     {

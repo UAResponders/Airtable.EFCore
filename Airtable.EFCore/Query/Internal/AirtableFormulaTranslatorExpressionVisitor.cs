@@ -19,6 +19,13 @@ internal sealed class AirtableFormulaTranslatorExpressionVisitor : ExpressionVis
         _entityType = entityType;
     }
 
+    public FormulaExpression? Translate(Expression expression)
+    {
+        var result = Visit(expression);
+
+        return result as FormulaExpression;
+    }
+
     protected override Expression VisitMember(MemberExpression node)
     {
         if (node.Expression is EntityShaperExpression)

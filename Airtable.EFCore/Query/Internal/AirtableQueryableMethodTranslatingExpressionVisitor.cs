@@ -8,14 +8,16 @@ namespace Airtable.EFCore.Query.Internal;
 internal sealed class AirtableQueryableMethodTranslatingExpressionVisitor : QueryableMethodTranslatingExpressionVisitor
 {
     private readonly IFormulaExpressionFactory _formulaExpressionFactory;
+    private readonly AirtableProjectionBindingExpressionVisitor _projectionBindingExpressionVisitor;
 
     public AirtableQueryableMethodTranslatingExpressionVisitor(
         QueryableMethodTranslatingExpressionVisitorDependencies dependencies,
-        QueryCompilationContext queryCompilationContext, 
+        QueryCompilationContext queryCompilationContext,
         IFormulaExpressionFactory formulaExpressionFactory)
         : base(dependencies, queryCompilationContext, subquery: false)
     {
         _formulaExpressionFactory = formulaExpressionFactory;
+        _projectionBindingExpressionVisitor = new AirtableProjectionBindingExpressionVisitor(formulaExpressionFactory);
     }
 
     protected override ShapedQueryExpression CreateShapedQueryExpression(Type elementType)
@@ -182,7 +184,13 @@ internal sealed class AirtableQueryableMethodTranslatingExpressionVisitor : Quer
 
     protected override ShapedQueryExpression TranslateSelect(ShapedQueryExpression source, LambdaExpression selector)
     {
-        throw new NotImplementedException();
+        if (selector.Body == selector.Parameters[0]) return source;
+
+        var selectExpression = (SelectExpression)source.QueryExpression;
+
+        var newSelectorBody = ReplacingExpressionVisitor.Replace(selector.Parameters.Single(), source.ShaperExpression, selector.Body);
+
+        return source.UpdateShaperExpression(_projectionBindingExpressionVisitor.Translate(selectExpression, newSelectorBody));
     }
 
     protected override ShapedQueryExpression? TranslateSelectMany(ShapedQueryExpression source, LambdaExpression collectionSelector, LambdaExpression resultSelector)
@@ -246,10 +254,10 @@ internal sealed class AirtableQueryableMethodTranslatingExpressionVisitor : Quer
         var entity = queryExpr.EntityType;
 
         var result = new AirtableFormulaTranslatorExpressionVisitor(
-            _formulaExpressionFactory, 
+            _formulaExpressionFactory,
             entity).Visit(query) as FormulaExpression;
 
-        if(result != null)
+        if (result != null)
             queryExpr.AddPredicate(result);
 
         return source;

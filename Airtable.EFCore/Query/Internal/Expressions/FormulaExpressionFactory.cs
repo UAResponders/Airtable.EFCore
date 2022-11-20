@@ -35,8 +35,10 @@ internal class FormulaExpressionFactory : IFormulaExpressionFactory
         return new SelectExpression(entityType);
     }
 
-    public TablePropertyReferenceExpression MakeTablePropertyReference(IProperty property)
+    public FormulaExpression MakeTablePropertyReference(IProperty property)
     {
+        if (property.IsPrimaryKey()) return RecordIdPropertyReferenceExpression.Instance;
+
         return new TablePropertyReferenceExpression(property.GetColumnName() ?? property.Name, property.ClrType);
     }
 
@@ -57,10 +59,10 @@ internal class FormulaExpressionFactory : IFormulaExpressionFactory
                         typeof(bool)));
     }
 
-    public FormulaExpression MakeAnd(params FormulaExpression[] expressions) 
+    public FormulaExpression MakeAnd(params FormulaExpression[] expressions)
         => LogicalFormulaExpression("AND", expressions);
 
-    public FormulaExpression MakeOr(params FormulaExpression[] expressions) 
+    public FormulaExpression MakeOr(params FormulaExpression[] expressions)
         => LogicalFormulaExpression("OR", expressions);
     public FormulaCallExpression MakeNot(FormulaExpression value) => new FormulaCallExpression("NOT", ImmutableList.Create(value), typeof(bool));
 }

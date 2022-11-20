@@ -2,34 +2,55 @@
 using System.Linq.Expressions;
 using Airtable.EFCore.Metadata.Conventions;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Query;
 
 namespace Airtable.EFCore.Query.Internal;
 
 internal sealed class SelectExpression : Expression
 {
-    private readonly List<string> _selectProperties = new();
-    private FormulaExpression? _filterByFormula;
+    private const string RootAlias = "root";
 
-    public IReadOnlyCollection<string> SelectProperties => _selectProperties;
+    private IDictionary<ProjectionMember, Expression> _projectionMapping = new Dictionary<ProjectionMember, Expression>();
+    private readonly List<ProjectionExpression> _projection = new();
+
+    private FormulaExpression? _filterByFormula;
+    public SelectExpression(IEntityType entityType)
+    {
+        Table = entityType.GetTableName() ?? entityType.Name;
+        EntityType = entityType;
+        FromExpression = new RootReferenceExpression(entityType, RootAlias);
+        _projectionMapping[new ProjectionMember()] = new EntityProjectionExpression(entityType, FromExpression);
+
+    }
     public string Table { get; }
     public int? Limit { get; set; }
     public FormulaExpression? FilterByFormula => _filterByFormula;
     public override Type Type => typeof(object);
-
     public IEntityType EntityType { get; }
+    public RootReferenceExpression FromExpression { get; }
+    public IReadOnlyList<ProjectionExpression> Projection => _projection;
 
-    public SelectExpression(IEntityType entityType)
+    public IEnumerable<string> GetFields()
     {
-        Table = entityType.GetTableName() ?? entityType.Name;
-        //entityType.FindPrimaryKey()?.Properties?.FirstOrDefault()?.Name;
-
-        foreach (var property in entityType.GetDerivedProperties())
+        if (_projection.Count == 1 && _projection[0].Expression is EntityProjectionExpression e && e.AccessExpression is RootReferenceExpression)
         {
-            _selectProperties.Add(property.Name);
-        }
+            foreach (var property in EntityType.GetProperties())
+            {
+                if (property.IsPrimaryKey()) continue;
 
-        EntityType = entityType;
+                yield return property.GetColumnName() ?? property.Name;
+            }
+        }
+        else
+        {
+            foreach (var item in _projection)
+            {
+                if (item.Expression is RecordIdPropertyReferenceExpression) continue;
+
+                yield return item.Name;
+            }
+        }
     }
 
     public void AddPredicate(FormulaExpression formula)
@@ -40,9 +61,9 @@ internal sealed class SelectExpression : Expression
             return;
         }
 
-        if(_filterByFormula is FormulaCallExpression callExpression && callExpression.FormulaName == "AND")
+        if (_filterByFormula is FormulaCallExpression callExpression && callExpression.FormulaName == "AND")
         {
-            var args = 
+            var args =
                 formula is FormulaCallExpression callExpressionInner && callExpressionInner.FormulaName == "AND"
                 ? callExpression.Arguments.AddRange(callExpressionInner.Arguments)
                 : callExpression.Arguments.Add(formula);
@@ -56,19 +77,73 @@ internal sealed class SelectExpression : Expression
         }
 
         _filterByFormula = new FormulaCallExpression(
-            "AND", 
-            ImmutableList.Create(_filterByFormula, formula), 
+            "AND",
+            ImmutableList.Create(_filterByFormula, formula),
             typeof(bool));
     }
 
-    public ProjectionExpression? GetProjection(ProjectionMember? member)
+    public Expression GetMappedProjection(ProjectionMember projectionMember)
+      => _projectionMapping[projectionMember];
+
+    public void ApplyProjection()
     {
-        if (member == null || member.Equals(new ProjectionMember()))
-            return new ProjectionExpression(
-                new EntityProjectionExpression(
-                    EntityType,
-                    new RootReferenceExpression(EntityType, "root")),
-                "root");
-        return null;
+        if (Projection.Any())
+        {
+            return;
+        }
+
+        var result = new Dictionary<ProjectionMember, Expression>();
+        foreach (var (projectionMember, expression) in _projectionMapping)
+        {
+            result[projectionMember] = Constant(
+                AddToProjection(
+                    expression,
+                    projectionMember.Last?.Name));
+        }
+
+        _projectionMapping = result;
     }
+
+    public void ReplaceProjectionMapping(IDictionary<ProjectionMember, Expression> projectionMapping)
+    {
+        _projectionMapping.Clear();
+        foreach (var (projectionMember, expression) in projectionMapping)
+        {
+            _projectionMapping[projectionMember] = expression;
+        }
+    }
+
+    public int AddToProjection(FormulaExpression formulaExpression)
+        => AddToProjection(formulaExpression, null);
+
+    public int AddToProjection(EntityProjectionExpression entityProjection)
+        => AddToProjection(entityProjection, null);
+
+    //public int AddToProjection(ObjectArrayProjectionExpression objectArrayProjection)
+    //    => AddToProjection(objectArrayProjection, null);
+
+    private int AddToProjection(Expression expression, string? alias)
+    {
+        var existingIndex = _projection.FindIndex(pe => pe.Expression.Equals(expression));
+        if (existingIndex != -1)
+        {
+            return existingIndex;
+        }
+
+        var baseAlias = alias
+            ?? (expression as IAccessExpression)?.Name
+            ?? "c";
+
+        var currentAlias = baseAlias;
+        var counter = 0;
+        while (_projection.Any(pe => string.Equals(pe.Alias, currentAlias, StringComparison.OrdinalIgnoreCase)))
+        {
+            currentAlias = $"{baseAlias}{counter++}";
+        }
+
+        _projection.Add(new ProjectionExpression(expression, currentAlias));
+
+        return _projection.Count - 1;
+    }
+
 }
