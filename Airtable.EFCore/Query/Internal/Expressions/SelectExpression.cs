@@ -1,8 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Linq.Expressions;
-using Airtable.EFCore.Metadata.Conventions;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Query;
 
 namespace Airtable.EFCore.Query.Internal;
