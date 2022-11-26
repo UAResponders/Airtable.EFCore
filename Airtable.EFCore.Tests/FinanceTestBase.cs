@@ -43,7 +43,12 @@ public class FinanceTestBase
 
         configure?.Invoke(services);
 
-        services.AddDbContext<FinanceDbContext>(o => o.UseAirtable("dummy", "dummy").UseInternalServiceProvider(services.BuildServiceProvider()));
+        services.AddDbContext<FinanceDbContext>(o =>
+        {
+            o.UseAirtable("dummy", "dummy")
+             .UseInternalServiceProvider(services.BuildServiceProvider())
+             .LogTo(Console.WriteLine, Microsoft.Extensions.Logging.LogLevel.Trace);
+        });
 
         return (services.BuildServiceProvider(), clientMoq);
     }

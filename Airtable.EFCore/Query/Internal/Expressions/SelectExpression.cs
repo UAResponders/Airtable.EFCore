@@ -19,8 +19,10 @@ internal sealed class SelectExpression : Expression
         EntityType = entityType;
         FromExpression = new RootReferenceExpression(entityType, RootAlias);
         _projectionMapping[new ProjectionMember()] = new EntityProjectionExpression(entityType, FromExpression);
-
     }
+
+    public override ExpressionType NodeType => ExpressionType.Extension;
+
     public string Table { get; }
     public int? Limit { get; set; }
     public FormulaExpression? FilterByFormula => _filterByFormula;
