@@ -18,6 +18,7 @@ internal interface IFormulaExpressionFactory
 
     FormulaConstantExpression MakeConstant(object? value);
     FormulaCallExpression MakeNot(FormulaExpression value);
+    FormulaCallExpression MakeCall(string func, params FormulaExpression[] arguments);
 
     FormulaExpression MakeAnd(params FormulaExpression[] expressions);
     FormulaExpression MakeOr(params FormulaExpression[] expressions);

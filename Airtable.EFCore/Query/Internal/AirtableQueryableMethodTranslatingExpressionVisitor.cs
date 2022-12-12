@@ -255,10 +255,12 @@ internal sealed class AirtableQueryableMethodTranslatingExpressionVisitor : Quer
 
         var result = new AirtableFormulaTranslatorExpressionVisitor(
             _formulaExpressionFactory,
-            entity).Visit(query) as FormulaExpression;
+            entity).Translate(query);
 
-        if (result != null)
-            queryExpr.AddPredicate(result);
+        if (result == null)
+            throw new InvalidOperationException("Failed to translate expresison");
+
+        queryExpr.AddPredicate(result);
 
         return source;
     }

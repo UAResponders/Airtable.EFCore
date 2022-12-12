@@ -25,6 +25,49 @@ internal sealed class AirtableFormulaTranslatorExpressionVisitor : ExpressionVis
         return result as FormulaExpression;
     }
 
+    protected override Expression VisitMethodCall(MethodCallExpression node)
+    {
+        if (node.Method.IsStatic)
+        {
+            if (node.Method.DeclaringType == typeof(string))
+            {
+                if (node.Method.Name == nameof(String.Equals))
+                {
+                    var ignoreCase = false;
+                    if (node.Arguments.Count == 3)
+                    {
+                        if (node.Arguments[2] is ConstantExpression comp)
+                        {
+                            var comparison = comp.GetConstantValue<StringComparison>();
+
+                            ignoreCase = comparison
+                                is StringComparison.OrdinalIgnoreCase
+                                or StringComparison.InvariantCultureIgnoreCase
+                                or StringComparison.CurrentCultureIgnoreCase;
+                        }
+                    }
+
+                    var left = Translate(node.Arguments[0]) ?? throw new InvalidOperationException("Failed to translate equals argument");
+                    var right = Translate(node.Arguments[1]) ?? throw new InvalidOperationException("Failed to translate equals argument");
+
+                    if (ignoreCase)
+                    {
+                        left = _formulaExpressionFactory.MakeCall("UPPER", left);
+                        right = _formulaExpressionFactory.MakeCall("UPPER", right);
+                    }
+
+                    return _formulaExpressionFactory.MakeBinary(
+                        ExpressionType.Equal,
+                        left,
+                        right,
+                        null);
+                }
+            }
+        }
+
+        throw new InvalidOperationException("Can't translate node:\n" + node.ToString());
+    }
+
     protected override Expression VisitMember(MemberExpression node)
     {
         if (node.Expression is EntityShaperExpression)
