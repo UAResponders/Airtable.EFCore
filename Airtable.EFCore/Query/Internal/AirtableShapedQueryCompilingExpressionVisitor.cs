@@ -2,6 +2,7 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Airtable.EFCore.Storage.Internal;
 using AirtableApiClient;
 using Microsoft.EntityFrameworkCore;
@@ -34,6 +35,18 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
         private readonly bool _trackQueryResults;
         private readonly IDictionary<ParameterExpression, Expression> _materializationContextBindings
             = new Dictionary<ParameterExpression, Expression>();
+
+        private static readonly Expression _jsonOptionsExpression = Expression.Constant(CreateOptions());
+
+        private static JsonSerializerOptions CreateOptions()
+        {
+            return new JsonSerializerOptions(JsonSerializerDefaults.Web)
+            {
+                Converters = {
+                    new JsonStringEnumConverter()
+                }
+            };
+        }
 
         protected AirtableProjectionBindingRemovingVisitorBase(
             ParameterExpression recordParameter,
@@ -185,7 +198,7 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
                             Expression.Convert(
                                 jsonElementObj,
                                 typeof(JsonElement)),
-                            Expression.Default(typeof(JsonSerializerOptions)))),
+                            _jsonOptionsExpression)),
                     Expression.Assign(resultVariable, Expression.Default(type))));
 
             block.Add(resultVariable);
