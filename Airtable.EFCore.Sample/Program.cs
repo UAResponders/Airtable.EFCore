@@ -18,10 +18,13 @@ var sp = services.BuildServiceProvider();
 var scope = sp.CreateScope();
 var db = scope.ServiceProvider.GetRequiredService<TestDbContext>();
 
-var manufacturerExists = await db.Manufacturers.FirstOrDefaultAsync();
-var manufacturerExistsName = await db.Manufacturers.Where(i=>String.Equals(i.ContactName, "AAAAAa", StringComparison.OrdinalIgnoreCase)).FirstOrDefaultAsync();
+//var manufacturerExists = await db.Manufacturers.FirstOrDefaultAsync();
+//var manufacturerExistsName = await db.Manufacturers.Where(i=>String.Equals(i.ContactName, "AAAAAa", StringComparison.OrdinalIgnoreCase)).FirstOrDefaultAsync();
 
-var manufacturerExistsNameAndId = await db.Manufacturers.Select(i => new { i.ContactName, Record = i.Id }).FirstOrDefaultAsync();
+//var manufacturerExistsNameAndId = await db.Manufacturers.Select(i => new { i.ContactName, Record = i.Id }).FirstOrDefaultAsync();
+
+var query = db.Manufacturers.FromView("San");
+var sanManufacturer = await query.ToArrayAsync();
 
 var newItem = new DbManufacturer { ContactName = "AAAAAA" };
 

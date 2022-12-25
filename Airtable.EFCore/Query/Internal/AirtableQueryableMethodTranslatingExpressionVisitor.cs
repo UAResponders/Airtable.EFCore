@@ -32,6 +32,16 @@ internal sealed class AirtableQueryableMethodTranslatingExpressionVisitor : Quer
         return CreateShapedQueryExpression(entityType, selectExpression);
     }
 
+    protected override Expression VisitExtension(Expression extensionExpression)
+    {
+        if (extensionExpression is FromViewQueryRootExpression view)
+        {
+            return CreateShapedQueryExpression(view.EntityType, new SelectExpression(view.EntityType) { View = view.View });
+        }
+
+        return base.VisitExtension(extensionExpression);
+    }
+
     private static ShapedQueryExpression CreateShapedQueryExpression(IEntityType entityType, Expression queryExpression)
         => new(
             queryExpression,

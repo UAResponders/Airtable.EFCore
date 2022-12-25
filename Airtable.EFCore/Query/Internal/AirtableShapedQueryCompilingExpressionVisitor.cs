@@ -396,6 +396,7 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
                     fields: _selectExpression.GetFields(),//_selectExpression.SelectProperties,
                     maxRecords: _selectExpression.Limit,
                     filterByFormula: formula,
+                    view: _selectExpression.View,
                     offset: response?.Offset);
 
                 if (!response.Success)

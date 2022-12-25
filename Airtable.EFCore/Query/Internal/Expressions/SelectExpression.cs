@@ -23,6 +23,7 @@ internal sealed class SelectExpression : Expression
 
     public override ExpressionType NodeType => ExpressionType.Extension;
 
+    public string? View { get; set; }
     public string Table { get; }
     public int? Limit { get; set; }
     public FormulaExpression? FilterByFormula => _filterByFormula;
@@ -145,5 +146,4 @@ internal sealed class SelectExpression : Expression
 
         return _projection.Count - 1;
     }
-
 }
