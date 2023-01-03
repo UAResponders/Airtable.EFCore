@@ -8,7 +8,7 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <Version>0.2.3.0</Version>
+    <Version>0.2.4.0</Version>
     <RepositoryUrl>https://github.com/uaresponders/Airtable.EFCore</RepositoryUrl>
   </PropertyGroup>
 

@@ -6,7 +6,13 @@ namespace Airtable.EFCore.Query.Internal;
 
 internal sealed class FormulaGenerator : FormulaExpressionVisitor
 {
-    private readonly StringBuilder _builder = new StringBuilder();
+    private readonly StringBuilder _builder = new();
+    private readonly IReadOnlyDictionary<string, object?> _parameters;
+
+    public FormulaGenerator(IReadOnlyDictionary<string, object?> parameters)
+    {
+        _parameters = parameters;
+    }
 
     protected override Expression VisitTableProperty(TablePropertyReferenceExpression tableProperty)
     {
@@ -24,7 +30,7 @@ internal sealed class FormulaGenerator : FormulaExpressionVisitor
         bool isFirst = true;
         foreach (var item in callExpression.Arguments)
         {
-            if(isFirst) isFirst = false;
+            if (isFirst) isFirst = false;
             else _builder.Append(',');
 
             Visit(item);
@@ -60,13 +66,13 @@ internal sealed class FormulaGenerator : FormulaExpressionVisitor
 
     protected override Expression VisitConstant(FormulaConstantExpression constantExpression)
     {
-        if(constantExpression.Value == null)
+        if (constantExpression.Value == null)
         {
             _builder.Append("null");
             return constantExpression;
         }
 
-        if(constantExpression.Type == typeof(string))
+        if (constantExpression.Type == typeof(string))
         {
             _builder.Append('\"');
             var str = (string)constantExpression.Value;
@@ -75,7 +81,15 @@ internal sealed class FormulaGenerator : FormulaExpressionVisitor
             return constantExpression;
         }
 
-        if(constantExpression.Value is IFormattable formattable)
+        if (constantExpression.Value is DateTimeOffset dateTimeOffset)
+        {
+            _builder.Append('"');
+            _builder.Append(dateTimeOffset.ToString("o"));
+            _builder.Append('"');
+            return constantExpression;
+        }
+
+        if (constantExpression.Value is IFormattable formattable)
         {
             _builder.Append(formattable.ToString(null, CultureInfo.InvariantCulture));
             return constantExpression;
@@ -91,5 +105,14 @@ internal sealed class FormulaGenerator : FormulaExpressionVisitor
         Visit(expression);
 
         return _builder.ToString();
+    }
+
+    protected override Expression VisitParameter(FormulaParameterExpression parameterExpression)
+    {
+        var name = parameterExpression.ParameterExpression.Name ?? throw new InvalidOperationException("Parameter name is null");
+        if (!_parameters.TryGetValue(name, out var parameters))
+            throw new InvalidOperationException($"Can't find parameter for '{name}'");
+
+        return VisitConstant(new FormulaConstantExpression(parameters, parameterExpression.Type));
     }
 }

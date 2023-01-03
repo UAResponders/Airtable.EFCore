@@ -1,5 +1,6 @@
 ﻿using System.Linq.Expressions;
 using System.Reflection;
+using Airtable.EFCore.Query.Internal.MethodTranslators;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query;
 
@@ -9,13 +10,16 @@ internal sealed class AirtableFormulaTranslatorExpressionVisitor : ExpressionVis
 {
     private readonly IFormulaExpressionFactory _formulaExpressionFactory;
     private readonly IEntityType _entityType;
+    private readonly IMethodCallTranslatorProvider _methodCallTranslator;
 
     public AirtableFormulaTranslatorExpressionVisitor(
         IFormulaExpressionFactory formulaExpressionFactory,
-        IEntityType entityType)
+        IEntityType entityType,
+        IMethodCallTranslatorProvider methodCallTranslator)
     {
         _formulaExpressionFactory = formulaExpressionFactory;
         _entityType = entityType;
+        _methodCallTranslator = methodCallTranslator;
     }
 
     public FormulaExpression? Translate(Expression expression)
@@ -27,43 +31,14 @@ internal sealed class AirtableFormulaTranslatorExpressionVisitor : ExpressionVis
 
     protected override Expression VisitMethodCall(MethodCallExpression node)
     {
-        if (node.Method.IsStatic)
-        {
-            if (node.Method.DeclaringType == typeof(string))
-            {
-                if (node.Method.Name == nameof(String.Equals))
-                {
-                    var ignoreCase = false;
-                    if (node.Arguments.Count == 3)
-                    {
-                        if (node.Arguments[2] is ConstantExpression comp)
-                        {
-                            var comparison = comp.GetConstantValue<StringComparison>();
 
-                            ignoreCase = comparison
-                                is StringComparison.OrdinalIgnoreCase
-                                or StringComparison.InvariantCultureIgnoreCase
-                                or StringComparison.CurrentCultureIgnoreCase;
-                        }
-                    }
 
-                    var left = Translate(node.Arguments[0]) ?? throw new InvalidOperationException("Failed to translate equals argument");
-                    var right = Translate(node.Arguments[1]) ?? throw new InvalidOperationException("Failed to translate equals argument");
+        var obj = Visit(node.Object) as FormulaExpression;
+        var args = node.Arguments.Select(Visit).Cast<FormulaExpression>().ToList();
 
-                    if (ignoreCase)
-                    {
-                        left = _formulaExpressionFactory.MakeCall("UPPER", left);
-                        right = _formulaExpressionFactory.MakeCall("UPPER", right);
-                    }
+        var translated = _methodCallTranslator.Translate(_entityType.Model, obj, node.Method, args);
 
-                    return _formulaExpressionFactory.MakeBinary(
-                        ExpressionType.Equal,
-                        left,
-                        right,
-                        null);
-                }
-            }
-        }
+        if (translated != null) return translated;
 
         throw new InvalidOperationException("Can't translate node:\n" + node.ToString());
     }
@@ -97,6 +72,23 @@ internal sealed class AirtableFormulaTranslatorExpressionVisitor : ExpressionVis
         }
     }
 
+    protected override Expression VisitParameter(ParameterExpression node)
+        => new FormulaParameterExpression(node);
+
+    private static (string, bool) OperatorToDateTimeFunction(ExpressionType expressionType)
+    {
+        return (expressionType) switch
+        {
+            ExpressionType.GreaterThan => ("IS_AFTER", false),
+            ExpressionType.GreaterThanOrEqual => ("IS_BEFORE", true),
+            ExpressionType.LessThan => ("IS_BEFORE", false),
+            ExpressionType.LessThanOrEqual => ("IS_AFTER", true),
+            ExpressionType.Equal => ("IS_SAME", false),
+            ExpressionType.NotEqual => ("IS_SAME", true),
+            var type => throw new InvalidOperationException($"Failed to tranlsate datetime operator '{type}'")
+        };
+    }
+
     protected override Expression VisitBinary(BinaryExpression node)
     {
         var visitedLeft = Visit(node.Left) as FormulaExpression ?? throw new InvalidOperationException("Failed to translate\n" + node.Left);
@@ -108,6 +100,16 @@ internal sealed class AirtableFormulaTranslatorExpressionVisitor : ExpressionVis
                 return _formulaExpressionFactory.MakeNot(visitedLeft);
             if (node.NodeType == ExpressionType.NotEqual)
                 return visitedLeft;
+        }
+
+        if (visitedLeft.Type == typeof(DateTimeOffset) && visitedRight.Type == typeof(DateTimeOffset))
+        {
+            var (func, invert) = OperatorToDateTimeFunction(node.NodeType);
+
+            var result = _formulaExpressionFactory.MakeCall(func, visitedLeft, visitedRight);
+            if (invert) result = _formulaExpressionFactory.MakeNot(result);
+
+            return result;
         }
 
         switch (node.NodeType)

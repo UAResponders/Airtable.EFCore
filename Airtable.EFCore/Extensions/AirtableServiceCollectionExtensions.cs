@@ -1,7 +1,9 @@
-﻿using Airtable.EFCore.Diagnostics.Internal;
+﻿using System.ComponentModel;
+using Airtable.EFCore.Diagnostics.Internal;
 using Airtable.EFCore.Infrastructure;
 using Airtable.EFCore.Metadata.Conventions;
 using Airtable.EFCore.Query.Internal;
+using Airtable.EFCore.Query.Internal.MethodTranslators;
 using Airtable.EFCore.Storage.Internal;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -9,7 +11,6 @@ using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
-using System.ComponentModel;
 
 namespace Microsoft.EntityFrameworkCore;
 
@@ -30,6 +31,7 @@ public static class AirtableServiceCollectionExtensions
             .TryAddProviderSpecificServices(
                 b => b.TryAddScoped<IAirtableClient, AirtableBaseWrapper>()
                       .TryAddScoped<IFormulaExpressionFactory, FormulaExpressionFactory>()
+                      .TryAddScoped<IMethodCallTranslatorProvider, AirtableMethodCallTranslatorProvider>()
             )
             ;
 

@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using Airtable.EFCore.Query.Internal.MethodTranslators;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -9,15 +10,18 @@ internal sealed class AirtableQueryableMethodTranslatingExpressionVisitor : Quer
 {
     private readonly IFormulaExpressionFactory _formulaExpressionFactory;
     private readonly AirtableProjectionBindingExpressionVisitor _projectionBindingExpressionVisitor;
+    private readonly IMethodCallTranslatorProvider _methodCallTranslator;
 
     public AirtableQueryableMethodTranslatingExpressionVisitor(
         QueryableMethodTranslatingExpressionVisitorDependencies dependencies,
         QueryCompilationContext queryCompilationContext,
-        IFormulaExpressionFactory formulaExpressionFactory)
+        IFormulaExpressionFactory formulaExpressionFactory,
+        IMethodCallTranslatorProvider methodCallTranslator)
         : base(dependencies, queryCompilationContext, subquery: false)
     {
         _formulaExpressionFactory = formulaExpressionFactory;
-        _projectionBindingExpressionVisitor = new AirtableProjectionBindingExpressionVisitor(formulaExpressionFactory);
+        _projectionBindingExpressionVisitor = new AirtableProjectionBindingExpressionVisitor(formulaExpressionFactory, methodCallTranslator);
+        _methodCallTranslator = methodCallTranslator;
     }
 
     protected override ShapedQueryExpression CreateShapedQueryExpression(Type elementType)
@@ -265,7 +269,9 @@ internal sealed class AirtableQueryableMethodTranslatingExpressionVisitor : Quer
 
         var result = new AirtableFormulaTranslatorExpressionVisitor(
             _formulaExpressionFactory,
-            entity).Translate(query);
+            entity,
+            _methodCallTranslator)
+            .Translate(query);
 
         if (result == null)
             throw new InvalidOperationException("Failed to translate expresison");

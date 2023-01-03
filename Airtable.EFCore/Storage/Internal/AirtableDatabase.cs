@@ -22,6 +22,23 @@ internal sealed class AirtableDatabase : Database
         throw new NotImplementedException();
     }
 
+    private static Fields GetFields(IUpdateEntry entry, IEnumerable<IProperty> properties)
+    {
+        var result = new Fields();
+        foreach (var item in properties)
+        {
+            var name = item.GetColumnName() ?? item.Name;
+            var value = entry.GetCurrentValue(item);
+
+            if (value is AirtableAttachment attachment)
+                value = new[] { attachment };
+
+            result.AddField(name, value);
+        }
+
+        return result;
+    }
+
     public override async Task<int> SaveChangesAsync(IList<IUpdateEntry> entries, CancellationToken cancellationToken = default)
     {
         var tasks = new List<Task>();
@@ -35,9 +52,7 @@ internal sealed class AirtableDatabase : Database
             var setProps =
                 item.EntityType
                     .GetProperties()
-                    .Where(i => !i.IsPrimaryKey())
-                    .Where(i => item.IsModified(i))
-                    .ToDictionary(i => i.GetColumnName() ?? i.Name, i => item.GetCurrentValue(i));
+                    .Where(i => !i.IsPrimaryKey());
 
             switch (item.EntityState)
             {
@@ -49,10 +64,10 @@ internal sealed class AirtableDatabase : Database
                     tasks.Add(_airtableBase.DeleteRecord(tableName, recordId));
                     break;
                 case Microsoft.EntityFrameworkCore.EntityState.Modified:
-                    tasks.Add(_airtableBase.UpdateRecord(tableName, new Fields { FieldsCollection = setProps }, recordId));
+                    tasks.Add(_airtableBase.UpdateRecord(tableName, GetFields(item, setProps.Where(i => !item.IsModified(i))), recordId));
                     break;
                 case Microsoft.EntityFrameworkCore.EntityState.Added:
-                    tasks.Add(Create(tableName, keyProp, item, new Fields { FieldsCollection = setProps }));
+                    tasks.Add(Create(tableName, keyProp, item, GetFields(item, setProps)));
                     break;
                 default:
                     break;
@@ -70,6 +85,8 @@ internal sealed class AirtableDatabase : Database
     private async Task Create(string tableName, IProperty primaryKey, IUpdateEntry updateEntry, Fields fields)
     {
         var result = await _airtableBase.CreateRecord(tableName, fields);
+
+        if (!result.Success) throw result.AirtableApiError;
 
         updateEntry.SetStoreGeneratedValue(primaryKey, result.Record.Id);
     }
@@ -89,7 +106,7 @@ public sealed class AirtableBaseWrapper : IAirtableClient
     public Task<AirtableCreateUpdateReplaceRecordResponse> CreateRecord(string tableName, Fields fields)
         => _airtable.CreateRecord(tableName, fields);
 
-    public Task DeleteRecord(string tableName, string? recordId) 
+    public Task DeleteRecord(string tableName, string? recordId)
         => _airtable.DeleteRecord(tableName, recordId);
 
     public Task<AirtableListRecordsResponse?> ListRecords(
@@ -105,8 +122,8 @@ public sealed class AirtableBaseWrapper : IAirtableClient
         string? timeZone = null,
         string? userLocale = null,
         bool returnFieldsByFieldId = false) => _airtable.ListRecords(tableName, offset, fields, filterByFormula, maxRecords, pageSize, sort, view, cellFormat, timeZone, userLocale, returnFieldsByFieldId);
-    
-    public Task<AirtableCreateUpdateReplaceRecordResponse> UpdateRecord(string tableName, Fields fields, string? recordId) 
+
+    public Task<AirtableCreateUpdateReplaceRecordResponse> UpdateRecord(string tableName, Fields fields, string? recordId)
         => _airtable.UpdateRecord(tableName, fields, recordId);
 }
 

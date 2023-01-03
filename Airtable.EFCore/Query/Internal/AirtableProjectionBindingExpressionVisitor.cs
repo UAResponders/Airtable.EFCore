@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Linq.Expressions;
+using Airtable.EFCore.Query.Internal.MethodTranslators;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -18,15 +19,23 @@ internal sealed class AirtableProjectionBindingExpressionVisitor : ExpressionVis
     private readonly Dictionary<ParameterExpression, CollectionShaperExpression> _collectionShaperMapping = new();
     private readonly Stack<INavigation> _includedNavigations = new();
     private readonly IFormulaExpressionFactory _formulaExpressionFactory;
+    private readonly IMethodCallTranslatorProvider _methodCallTranslatorProvider;
 
-    public AirtableProjectionBindingExpressionVisitor(IFormulaExpressionFactory formulaExpressionFactory)
+    public AirtableProjectionBindingExpressionVisitor(
+        IFormulaExpressionFactory formulaExpressionFactory,
+        IMethodCallTranslatorProvider methodCallTranslatorProvider)
     {
         _formulaExpressionFactory = formulaExpressionFactory;
+        _methodCallTranslatorProvider = methodCallTranslatorProvider;
     }
 
     public Expression Translate(SelectExpression selectExpression, Expression expression)
     {
-        _airtableFormulaTranslator = new AirtableFormulaTranslatorExpressionVisitor(_formulaExpressionFactory, selectExpression.EntityType);
+        _airtableFormulaTranslator = new AirtableFormulaTranslatorExpressionVisitor(
+            _formulaExpressionFactory,
+            selectExpression.EntityType,
+            _methodCallTranslatorProvider
+            );
         _selectExpression = selectExpression;
         _clientEval = false;
 

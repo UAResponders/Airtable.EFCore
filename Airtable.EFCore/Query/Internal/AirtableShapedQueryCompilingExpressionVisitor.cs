@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json;
@@ -31,6 +32,15 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
                     BindingFlags.NonPublic | BindingFlags.Static,
                     new[] { typeof(JsonElement), typeof(JsonSerializerOptions) })
                 ?? throw new InvalidOperationException("Could not find method ReadSingleValue");
+
+        private static readonly MethodInfo _visitorReadRawMethod =
+            typeof(AirtableProjectionBindingRemovingVisitorBase)
+                .GetMethod(
+                    nameof(AirtableProjectionBindingRemovingVisitorBase.ReadRaw),
+                    BindingFlags.NonPublic | BindingFlags.Static,
+                    new[] { typeof(JsonElement), typeof(JsonSerializerOptions) })
+                ?? throw new InvalidOperationException("Could not find method ReadRaw");
+
         private readonly ParameterExpression _recordParameter;
         private readonly bool _trackQueryResults;
         private readonly IDictionary<ParameterExpression, Expression> _materializationContextBindings
@@ -175,15 +185,16 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
             var resultVariable = Expression.Variable(type);
             var jsonElementObj = Expression.Variable(typeof(object));
             var fields = Expression.Variable(typeof(Dictionary<string, object>));
+            var isArray = type != typeof(string) && typeof(IEnumerable).IsAssignableFrom(type);
+            var readMethod = isArray ? _visitorReadRawMethod : _visitorReadSingleValueMethod;
 
-            var block = new List<Expression>();
-            block.Add(
+            var block = new Expression[]
+            {
                 Expression.Assign(
                     fields,
                     Expression.Property(
                         _recordParameter,
-                        nameof(AirtableRecord.Fields))));
-            block.Add(
+                        nameof(AirtableRecord.Fields))),
                 Expression.IfThenElse(
                     Expression.Call(
                         fields,
@@ -194,14 +205,15 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
                     Expression.Assign(
                         resultVariable,
                         Expression.Call(
-                            _visitorReadSingleValueMethod.MakeGenericMethod(type),
+                            readMethod.MakeGenericMethod(type),
                             Expression.Convert(
                                 jsonElementObj,
                                 typeof(JsonElement)),
                             _jsonOptionsExpression)),
-                    Expression.Assign(resultVariable, Expression.Default(type))));
+                    Expression.Assign(resultVariable, Expression.Default(type))),
 
-            block.Add(resultVariable);
+                resultVariable
+            };
 
             return Expression.Block(
                 type,
@@ -225,6 +237,12 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
         }
 
         private Expression CreateGetRecordIdExpression() => Expression.Property(_recordParameter, nameof(AirtableRecord.Id));
+
+        [return: MaybeNull]
+        private static T ReadRaw<T>(JsonElement jsonElement, JsonSerializerOptions jsonSerializerOptions)
+        {
+            return jsonElement.Deserialize<T>(jsonSerializerOptions);
+        }
 
         [return: MaybeNull]
         private static T ReadSingleValue<T>(JsonElement jsonElement, JsonSerializerOptions jsonSerializerOptions)
@@ -343,7 +361,6 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
                 typeof(QueryingEnumerable<>).MakeGenericType(shaperLambda.ReturnType).GetConstructors().First(),
                 Expression.Convert(QueryCompilationContext.QueryContextParameter, typeof(AirtableQueryContext)),
                 Expression.Constant(selectExpression),
-                Expression.Constant(new FormulaGenerator()),
                 Expression.Constant(shaperLambda.Compile()),
                 Expression.Constant(
                         QueryCompilationContext.QueryTrackingBehavior == QueryTrackingBehavior.NoTrackingWithIdentityResolution)
@@ -365,13 +382,12 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
         public QueryingEnumerable(
             AirtableQueryContext airtableQueryContext,
             SelectExpression selectExpression,
-            FormulaGenerator formulaGenerator,
             Func<AirtableQueryContext, AirtableRecord, T> shaper,
             bool standalone)
         {
             _airtableQueryContext = airtableQueryContext;
             _selectExpression = selectExpression;
-            _formulaGenerator = formulaGenerator;
+            _formulaGenerator = new FormulaGenerator(airtableQueryContext.ParameterValues);
             _shaper = shaper;
             _standalone = standalone;
             _base = _airtableQueryContext.AirtableClient;
@@ -393,11 +409,14 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
             {
                 response = await _base.ListRecords(
                     _selectExpression.Table,
-                    fields: _selectExpression.GetFields(),//_selectExpression.SelectProperties,
+                    fields: _selectExpression.GetFields(),
                     maxRecords: _selectExpression.Limit,
                     filterByFormula: formula,
                     view: _selectExpression.View,
                     offset: response?.Offset);
+
+                if (response is null)
+                    throw new InvalidOperationException("Airtable response is null");
 
                 if (!response.Success)
                     throw new InvalidOperationException("Airtable error", response.AirtableApiError);

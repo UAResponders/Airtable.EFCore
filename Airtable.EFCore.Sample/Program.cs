@@ -1,6 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using System.ComponentModel.DataAnnotations.Schema;
 using Airtable.EFCore;
+using AirtableApiClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,7 +27,7 @@ var db = scope.ServiceProvider.GetRequiredService<TestDbContext>();
 var query = db.Manufacturers.FromView("San");
 var sanManufacturer = await query.ToArrayAsync();
 
-var newItem = new DbManufacturer { ContactName = "AAAAAA" };
+var newItem = new DbManufacturer { ContactName = "AAAAAA", Image = new AirtableAttachment { Url = "https://i.imgur.com/eCttT80.jpeg" } };
 
 db.Manufacturers.Add(newItem);
 
@@ -57,6 +58,8 @@ public class DbManufacturer
     public string Name { get; set; }
     [Column("Contact Name")]
     public string ContactName { get; set; }
+
+    public AirtableAttachment Image { get; set; }
 }
 
 public class DbProductInventory

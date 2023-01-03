@@ -52,6 +52,7 @@ internal sealed class LogicalArgsReducingExpressionVisitor : FormulaExpressionVi
         return callExpression;
     }
 
+    protected override Expression VisitParameter(FormulaParameterExpression parameterExpression) => parameterExpression;
     protected override Expression VisitTableProperty(TablePropertyReferenceExpression tableProperty) => tableProperty;
 }
 
@@ -61,14 +62,14 @@ internal sealed class TruthyValuesComparisonTransformingExpressionVisitor : Form
 {
     protected override Expression VisitBinary(FormulaBinaryExpression binaryExpression)
     {
-        var left = (FormulaExpression) Visit(binaryExpression.Left);
-        var right = (FormulaExpression) Visit(binaryExpression.Right);
+        var left = (FormulaExpression)Visit(binaryExpression.Left);
+        var right = (FormulaExpression)Visit(binaryExpression.Right);
 
         if (right is FormulaConstantExpression constant && constant.Value is null)
         {
-            if(binaryExpression.OperatorType == ExpressionType.Equal)
+            if (binaryExpression.OperatorType == ExpressionType.Equal)
                 return new FormulaCallExpression("NOT", ImmutableList.Create(left), typeof(bool));
-            if(binaryExpression.OperatorType == ExpressionType.NotEqual)
+            if (binaryExpression.OperatorType == ExpressionType.NotEqual)
                 return left;
         }
 
@@ -86,5 +87,6 @@ internal sealed class TruthyValuesComparisonTransformingExpressionVisitor : Form
         return new FormulaCallExpression(callExpression.FormulaName, visitedArgs, callExpression.Type);
     }
 
+    protected override Expression VisitParameter(FormulaParameterExpression parameterExpression) => parameterExpression;
     protected override Expression VisitTableProperty(TablePropertyReferenceExpression tableProperty) => tableProperty;
 }
