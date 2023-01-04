@@ -64,7 +64,7 @@ internal sealed class AirtableDatabase : Database
                     tasks.Add(_airtableBase.DeleteRecord(tableName, recordId));
                     break;
                 case Microsoft.EntityFrameworkCore.EntityState.Modified:
-                    tasks.Add(_airtableBase.UpdateRecord(tableName, GetFields(item, setProps.Where(i => !item.IsModified(i))), recordId));
+                    tasks.Add(_airtableBase.UpdateRecord(tableName, GetFields(item, setProps.Where(i => item.IsModified(i))), recordId));
                     break;
                 case Microsoft.EntityFrameworkCore.EntityState.Added:
                     tasks.Add(Create(tableName, keyProp, item, GetFields(item, setProps)));
