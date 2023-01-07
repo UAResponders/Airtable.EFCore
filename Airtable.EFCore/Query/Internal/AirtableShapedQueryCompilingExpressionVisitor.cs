@@ -405,23 +405,30 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
 
             if (formulaExpr is not null)
             {
-                singleRecordId = _formulaGenerator.TryExtractSingleRecordId(formulaExpr);
-
-                if (singleRecordId is not null)
+                //User expects that if record is not in the view it should not be selected
+                //So recordId optimization will not work for the views, as it will always return record
+                if (_selectExpression.View is null)
                 {
-                    var record = await _base.GetRecord(_selectExpression.Table, singleRecordId);
+                    singleRecordId = _formulaGenerator.TryExtractSingleRecordId(formulaExpr);
 
-                    if (record is null)
-                        throw new InvalidOperationException("Airtable response is null");
+                    //This optimizes call to single entity retrival operation
+                    //This is also used by ReloadAsync call
+                    if (singleRecordId is not null)
+                    {
+                        var record = await _base.GetRecord(_selectExpression.Table, singleRecordId);
 
-                    if (!record.Success)
-                        throw new InvalidOperationException("Airtable error", response.AirtableApiError);
+                        if (record is null)
+                            throw new InvalidOperationException("Airtable response is null");
 
-                    yield return _shaper(_airtableQueryContext, record.Record);
-                    yield break;
+                        if (!record.Success)
+                            throw new InvalidOperationException("Airtable error", response.AirtableApiError);
+
+                        yield return _shaper(_airtableQueryContext, record.Record);
+                        yield break;
+                    }
                 }
 
-                formula = _formulaGenerator.GetFormula(_selectExpression.FilterByFormula);
+                formula = _formulaGenerator.GetFormula(formulaExpr);
             }
 
             do

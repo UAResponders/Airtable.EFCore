@@ -27,6 +27,8 @@ var db = scope.ServiceProvider.GetRequiredService<TestDbContext>();
 var query = db.Manufacturers.FromView("San");
 var sanManufacturer = await query.ToArrayAsync();
 
+var single = await query.FirstOrDefaultAsync(i => i.Id == "recMH8Vt92AadXO8i");
+
 sanManufacturer[0].Name = "asdfdegwegwgew";
 await db.Entry(sanManufacturer[0]).ReloadAsync();
 
