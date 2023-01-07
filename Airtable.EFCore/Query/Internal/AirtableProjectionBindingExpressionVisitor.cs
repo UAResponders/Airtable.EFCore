@@ -116,7 +116,9 @@ internal sealed class AirtableProjectionBindingExpressionVisitor : ExpressionVis
             }
 
             return new ProjectionBindingExpression(
-                _selectExpression, _selectExpression.AddToProjection(translation), expression.Type.MakeNullable());
+                _selectExpression,
+                _selectExpression.AddToProjection(translation),
+                expression.Type);
         }
         else
         {

@@ -398,10 +398,29 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
             AirtableListRecordsResponse? response = null;
             _airtableQueryContext.InitializeStateManager(_standalone);
 
+            var formulaExpr = _selectExpression.FilterByFormula;
+
+            string? singleRecordId = null;
             string? formula = null;
 
-            if (_selectExpression.FilterByFormula != null)
+            if (formulaExpr is not null)
             {
+                singleRecordId = _formulaGenerator.TryExtractSingleRecordId(formulaExpr);
+
+                if (singleRecordId is not null)
+                {
+                    var record = await _base.GetRecord(_selectExpression.Table, singleRecordId);
+
+                    if (record is null)
+                        throw new InvalidOperationException("Airtable response is null");
+
+                    if (!record.Success)
+                        throw new InvalidOperationException("Airtable error", response.AirtableApiError);
+
+                    yield return _shaper(_airtableQueryContext, record.Record);
+                    yield break;
+                }
+
                 formula = _formulaGenerator.GetFormula(_selectExpression.FilterByFormula);
             }
 

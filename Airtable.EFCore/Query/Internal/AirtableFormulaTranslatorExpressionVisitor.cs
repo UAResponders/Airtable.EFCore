@@ -1,6 +1,7 @@
 ﻿using System.Linq.Expressions;
 using System.Reflection;
 using Airtable.EFCore.Query.Internal.MethodTranslators;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query;
 
@@ -8,6 +9,8 @@ namespace Airtable.EFCore.Query.Internal;
 
 internal sealed class AirtableFormulaTranslatorExpressionVisitor : ExpressionVisitor
 {
+    private static readonly MethodInfo _efPropertyRef = typeof(EF).GetRuntimeMethod(nameof(EF.Property), new[] { typeof(object), typeof(string) })!;
+
     private readonly IFormulaExpressionFactory _formulaExpressionFactory;
     private readonly IEntityType _entityType;
     private readonly IMethodCallTranslatorProvider _methodCallTranslator;
@@ -31,7 +34,18 @@ internal sealed class AirtableFormulaTranslatorExpressionVisitor : ExpressionVis
 
     protected override Expression VisitMethodCall(MethodCallExpression node)
     {
+        if (node.Method.IsGenericMethod && node.Method.GetGenericMethodDefinition() == _efPropertyRef)
+        {
+            var shaper = node.Arguments[0] as EntityShaperExpression;
+            var property = node.Arguments[1].GetConstantValue<string>();
 
+            if (_entityType.GetProperty(property).IsPrimaryKey())
+            {
+                return RecordIdPropertyReferenceExpression.Instance;
+            }
+
+            return new TablePropertyReferenceExpression(property, node.Method.GetGenericArguments()[0]);
+        }
 
         var obj = Visit(node.Object) as FormulaExpression;
         var args = node.Arguments.Select(Visit).Cast<FormulaExpression>().ToList();
@@ -41,6 +55,16 @@ internal sealed class AirtableFormulaTranslatorExpressionVisitor : ExpressionVis
         if (translated != null) return translated;
 
         throw new InvalidOperationException("Can't translate node:\n" + node.ToString());
+    }
+
+    protected override Expression VisitExtension(Expression node)
+    {
+        if (node is EntityShaperExpression)
+        {
+            return new RootReferenceExpression(_entityType, "shaper");
+        }
+
+        return base.VisitExtension(node);
     }
 
     protected override Expression VisitMember(MemberExpression node)

@@ -20,6 +20,8 @@ internal abstract class FormulaExpressionVisitor : ExpressionVisitor
                     return VisitTableProperty(tableProperty);
                 case FormulaParameterExpression parameterExpression:
                     return VisitParameter(parameterExpression);
+                case RecordIdPropertyReferenceExpression recordIdProperty:
+                    return VisitRecordId(recordIdProperty);
                 default:
                     break;
             }
@@ -28,6 +30,7 @@ internal abstract class FormulaExpressionVisitor : ExpressionVisitor
         return base.VisitExtension(node);
     }
 
+    protected abstract Expression VisitRecordId(RecordIdPropertyReferenceExpression recordIdProperty);
     protected abstract Expression VisitTableProperty(TablePropertyReferenceExpression tableProperty);
     protected abstract Expression VisitFunction(FormulaCallExpression callExpression);
     protected abstract Expression VisitBinary(FormulaBinaryExpression binaryExpression);

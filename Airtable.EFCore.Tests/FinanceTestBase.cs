@@ -14,7 +14,8 @@ namespace Airtable.EFCore.Tests;
 
 public class FinanceTestBase
 {
-    protected AirtableRecordList EmptyList { get; }  = JsonSerializer.Deserialize<AirtableRecordList>(@"{""records"":[]}")!;
+    protected AirtableRecordList EmptyList { get; } = JsonSerializer.Deserialize<AirtableRecordList>(@"{""records"":[]}")!;
+    protected static AirtableRecord GetRecordWithId(string id) => JsonSerializer.Deserialize<AirtableRecord>(@$"{{""id"":""{id}""}}")!;
 
     protected (ServiceProvider serviceProvider, Mock<IAirtableClient> airtableClientMock) SetupServices(Action<IServiceCollection>? configure = null)
     {

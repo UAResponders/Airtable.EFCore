@@ -27,9 +27,8 @@ var db = scope.ServiceProvider.GetRequiredService<TestDbContext>();
 var query = db.Manufacturers.FromView("San");
 var sanManufacturer = await query.ToArrayAsync();
 
-var newItem = new DbManufacturer { ContactName = "AAAAAA", Image = new AirtableAttachment { Url = "https://i.imgur.com/eCttT80.jpeg" } };
-
-db.Manufacturers.Add(newItem);
+sanManufacturer[0].Name = "asdfdegwegwgew";
+await db.Entry(sanManufacturer[0]).ReloadAsync();
 
 await db.SaveChangesAsync();
 

@@ -61,7 +61,7 @@ internal sealed class AirtableDatabase : Database
                 case Microsoft.EntityFrameworkCore.EntityState.Unchanged:
                     break;
                 case Microsoft.EntityFrameworkCore.EntityState.Deleted:
-                    tasks.Add(_airtableBase.DeleteRecord(tableName, recordId));
+                    tasks.Add(_airtableBase.DeleteRecord(tableName, recordId ?? throw new InvalidOperationException("Record id is null")));
                     break;
                 case Microsoft.EntityFrameworkCore.EntityState.Modified:
                     tasks.Add(_airtableBase.UpdateRecord(tableName, GetFields(item, setProps.Where(i => item.IsModified(i))), recordId));
@@ -106,9 +106,10 @@ public sealed class AirtableBaseWrapper : IAirtableClient
     public Task<AirtableCreateUpdateReplaceRecordResponse> CreateRecord(string tableName, Fields fields)
         => _airtable.CreateRecord(tableName, fields);
 
-    public Task DeleteRecord(string tableName, string? recordId)
+    public Task DeleteRecord(string tableName, string recordId)
         => _airtable.DeleteRecord(tableName, recordId);
-
+    public Task<AirtableRetrieveRecordResponse> GetRecord(string tableName, string recordId)
+        => _airtable.RetrieveRecord(tableName, recordId);
     public Task<AirtableListRecordsResponse?> ListRecords(
         string tableName,
         string? offset = null,
@@ -130,7 +131,9 @@ public sealed class AirtableBaseWrapper : IAirtableClient
 public interface IAirtableClient
 {
     Task<AirtableCreateUpdateReplaceRecordResponse> CreateRecord(string tableName, Fields fields);
-    Task DeleteRecord(string tableName, string? recordId);
+
+    Task DeleteRecord(string tableName, string recordId);
+
     Task<AirtableListRecordsResponse?> ListRecords(
         string tableName,
         string? offset = null,
@@ -144,5 +147,8 @@ public interface IAirtableClient
         string? timeZone = null,
         string? userLocale = null,
         bool returnFieldsByFieldId = false);
+
     Task<AirtableCreateUpdateReplaceRecordResponse> UpdateRecord(string tableName, Fields fields, string? recordId);
+
+    Task<AirtableRetrieveRecordResponse> GetRecord(string tableName, string recordId);
 }

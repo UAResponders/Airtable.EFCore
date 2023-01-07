@@ -14,6 +14,36 @@ internal sealed class FormulaGenerator : FormulaExpressionVisitor
         _parameters = parameters;
     }
 
+    public string? TryExtractSingleRecordId(FormulaExpression formulaExpression)
+    {
+        if (formulaExpression is FormulaBinaryExpression bin
+            && bin.OperatorType == ExpressionType.Equal)
+        {
+            var recordId =
+                bin.Left as RecordIdPropertyReferenceExpression
+                ?? bin.Right as RecordIdPropertyReferenceExpression;
+
+            if (recordId is null) return null;
+
+            var recordIdValue =
+                bin.Left == recordId
+                ? bin.Right
+                : bin.Left;
+
+            if (recordIdValue is FormulaParameterExpression parameterExpression)
+            {
+                recordIdValue = ResolveParameter(parameterExpression);
+            }
+
+            if (recordIdValue is FormulaConstantExpression constant)
+            {
+                return constant.Value?.ToString();
+            }
+        }
+
+        return null;
+    }
+
     protected override Expression VisitTableProperty(TablePropertyReferenceExpression tableProperty)
     {
         _builder.Append('{');
@@ -109,10 +139,22 @@ internal sealed class FormulaGenerator : FormulaExpressionVisitor
 
     protected override Expression VisitParameter(FormulaParameterExpression parameterExpression)
     {
+        return VisitConstant(ResolveParameter(parameterExpression));
+    }
+
+    private FormulaConstantExpression ResolveParameter(FormulaParameterExpression parameterExpression)
+    {
         var name = parameterExpression.ParameterExpression.Name ?? throw new InvalidOperationException("Parameter name is null");
         if (!_parameters.TryGetValue(name, out var parameters))
             throw new InvalidOperationException($"Can't find parameter for '{name}'");
 
-        return VisitConstant(new FormulaConstantExpression(parameters, parameterExpression.Type));
+        return new FormulaConstantExpression(parameters, parameterExpression.Type);
+    }
+
+    protected override Expression VisitRecordId(RecordIdPropertyReferenceExpression recordIdProperty)
+    {
+        _builder.Append("RECORD_ID()");
+
+        return recordIdProperty;
     }
 }
