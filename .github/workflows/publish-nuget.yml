@@ -64,4 +64,6 @@ jobs:
         dotnet-version: 6.0.x
     - name: Push generated package to Nuget.org
       run: dotnet nuget push ./obj/output/*.nupkg --skip-duplicate --source https://api.nuget.org/v3/index.json --api-key ${NUGET_API_KEY}
+      env:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
 
