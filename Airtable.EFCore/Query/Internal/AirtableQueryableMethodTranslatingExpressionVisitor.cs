@@ -116,24 +116,7 @@ internal sealed class AirtableQueryableMethodTranslatingExpressionVisitor : Quer
 
     protected override ShapedQueryExpression? TranslateFirstOrDefault(ShapedQueryExpression source, LambdaExpression? predicate, Type returnType, bool returnDefault)
     {
-        var rootExpression = (SelectExpression)source.QueryExpression;
-
-        if (predicate != null)
-        {
-            var newSource = TranslateWhere(source, predicate);
-            if (newSource == null)
-            {
-                return null;
-            }
-
-            source = newSource;
-        }
-
-        rootExpression.Limit = 1;
-
-        return source.ShaperExpression.Type != returnType
-            ? source.UpdateShaperExpression(Expression.Convert(source.ShaperExpression, returnType))
-            : source;
+        throw new NotImplementedException();
     }
 
     protected override ShapedQueryExpression? TranslateGroupBy(ShapedQueryExpression source, LambdaExpression keySelector, LambdaExpression? elementSelector, LambdaExpression? resultSelector)
@@ -239,7 +222,9 @@ internal sealed class AirtableQueryableMethodTranslatingExpressionVisitor : Quer
 
     protected override ShapedQueryExpression? TranslateTake(ShapedQueryExpression source, Expression count)
     {
-        throw new NotImplementedException();
+        var selectExpression = (SelectExpression)source.QueryExpression;
+        selectExpression.Limit = count;
+        return source;
     }
 
     protected override ShapedQueryExpression? TranslateTakeWhile(ShapedQueryExpression source, LambdaExpression predicate)
