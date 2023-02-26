@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using AirtableApiClient;
 using Microsoft.Extensions.DependencyInjection;

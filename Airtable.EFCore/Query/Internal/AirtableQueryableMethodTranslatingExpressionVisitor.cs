@@ -129,7 +129,7 @@ internal sealed class AirtableQueryableMethodTranslatingExpressionVisitor : Quer
             source = newSource;
         }
 
-        rootExpression.Limit = 1;
+        rootExpression.Limit = Expression.Constant(1);
 
         return source.ShaperExpression.Type != returnType
             ? source.UpdateShaperExpression(Expression.Convert(source.ShaperExpression, returnType))
@@ -239,7 +239,9 @@ internal sealed class AirtableQueryableMethodTranslatingExpressionVisitor : Quer
 
     protected override ShapedQueryExpression? TranslateTake(ShapedQueryExpression source, Expression count)
     {
-        throw new NotImplementedException();
+        var selectExpression = (SelectExpression)source.QueryExpression;
+        selectExpression.Limit = count;
+        return source;
     }
 
     protected override ShapedQueryExpression? TranslateTakeWhile(ShapedQueryExpression source, LambdaExpression predicate)

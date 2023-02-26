@@ -24,10 +24,10 @@ var db = scope.ServiceProvider.GetRequiredService<TestDbContext>();
 
 //var manufacturerExistsNameAndId = await db.Manufacturers.Select(i => new { i.ContactName, Record = i.Id }).FirstOrDefaultAsync();
 
-var query = db.Manufacturers.FromView("San");
-var sanManufacturer = await query.ToArrayAsync();
+var query = db.Manufacturers;
+var sanManufacturer = await query.Take(3).ToArrayAsync();
 
-var single = await query.FirstOrDefaultAsync(i => i.Id == "recMH8Vt92AadXO8i");
+var single = await query.Where(i=>i.Name == "Satsuma Leather Goods").FirstOrDefaultAsync();
 
 sanManufacturer[0].Name = "asdfdegwegwgew";
 await db.Entry(sanManufacturer[0]).ReloadAsync();
@@ -48,7 +48,6 @@ public class TestDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<DbProductInventory>().ToTable("Product Inventory");
-        var mdb = modelBuilder.Entity<DbManufacturer>().Property(i => i.Id);
         base.OnModelCreating(modelBuilder);
     }
 }

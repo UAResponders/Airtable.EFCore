@@ -395,7 +395,6 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
 
         public async IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
-            AirtableListRecordsResponse? response = null;
             _airtableQueryContext.InitializeStateManager(_standalone);
 
             var formulaExpr = _selectExpression.FilterByFormula;
@@ -421,7 +420,7 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
                             throw new InvalidOperationException("Airtable response is null");
 
                         if (!record.Success)
-                            throw new InvalidOperationException("Airtable error", response.AirtableApiError);
+                            throw new InvalidOperationException("Airtable error", record.AirtableApiError);
 
                         yield return _shaper(_airtableQueryContext, record.Record);
                         yield break;
@@ -431,12 +430,30 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
                 formula = _formulaGenerator.GetFormula(formulaExpr);
             }
 
+            var limit =
+                _selectExpression.Limit switch
+                {
+                    null => default(int?),
+                    ParameterExpression param => Convert.ToInt32(_airtableQueryContext.ParameterValues[param.Name!]),
+                    ConstantExpression constant => constant.GetConstantValue<int>(),
+                    _ => throw new InvalidOperationException("Failed to convert limit expression")
+                };
+
+            var returned = 0;
+            AirtableListRecordsResponse? response = null;
+
             do
             {
+                var toGet = limit == null
+                    ? null
+                    : (limit - returned);
+
+                if (toGet == 0) yield break;
+
                 response = await _base.ListRecords(
                     _selectExpression.Table,
                     fields: _selectExpression.GetFields(),
-                    maxRecords: _selectExpression.Limit,
+                    maxRecords: toGet,
                     filterByFormula: formula,
                     view: _selectExpression.View,
                     offset: response?.Offset);
@@ -450,6 +467,7 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
                 foreach (var item in response.Records)
                 {
                     yield return _shaper(_airtableQueryContext, item);
+                    returned++;
                 }
             }
             while (response.Offset != null);

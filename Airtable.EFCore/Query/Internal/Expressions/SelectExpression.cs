@@ -25,7 +25,7 @@ internal sealed class SelectExpression : Expression
 
     public string? View { get; set; }
     public string Table { get; }
-    public int? Limit { get; set; }
+    public Expression? Limit { get; set; }
     public FormulaExpression? FilterByFormula => _filterByFormula;
     public override Type Type => typeof(object);
     public IEntityType EntityType { get; }
