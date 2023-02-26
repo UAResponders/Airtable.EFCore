@@ -116,7 +116,24 @@ internal sealed class AirtableQueryableMethodTranslatingExpressionVisitor : Quer
 
     protected override ShapedQueryExpression? TranslateFirstOrDefault(ShapedQueryExpression source, LambdaExpression? predicate, Type returnType, bool returnDefault)
     {
-        throw new NotImplementedException();
+        var rootExpression = (SelectExpression)source.QueryExpression;
+
+        if (predicate != null)
+        {
+            var newSource = TranslateWhere(source, predicate);
+            if (newSource == null)
+            {
+                return null;
+            }
+
+            source = newSource;
+        }
+
+        rootExpression.Limit = Expression.Constant(1);
+
+        return source.ShaperExpression.Type != returnType
+            ? source.UpdateShaperExpression(Expression.Convert(source.ShaperExpression, returnType))
+            : source;
     }
 
     protected override ShapedQueryExpression? TranslateGroupBy(ShapedQueryExpression source, LambdaExpression keySelector, LambdaExpression? elementSelector, LambdaExpression? resultSelector)

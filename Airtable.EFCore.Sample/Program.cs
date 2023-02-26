@@ -27,7 +27,7 @@ var db = scope.ServiceProvider.GetRequiredService<TestDbContext>();
 var query = db.Manufacturers;
 var sanManufacturer = await query.Take(3).ToArrayAsync();
 
-var single = await query.FirstOrDefaultAsync(i => i.Id == "recMH8Vt92AadXO8i");
+var single = await query.Where(i=>i.Name == "Satsuma Leather Goods").FirstOrDefaultAsync();
 
 sanManufacturer[0].Name = "asdfdegwegwgew";
 await db.Entry(sanManufacturer[0]).ReloadAsync();
