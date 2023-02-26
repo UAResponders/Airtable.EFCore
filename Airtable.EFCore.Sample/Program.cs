@@ -25,7 +25,7 @@ var db = scope.ServiceProvider.GetRequiredService<TestDbContext>();
 //var manufacturerExistsNameAndId = await db.Manufacturers.Select(i => new { i.ContactName, Record = i.Id }).FirstOrDefaultAsync();
 
 var query = db.Manufacturers;
-var sanManufacturer = await query.Take(105).ToArrayAsync();
+var sanManufacturer = await query.Take(3).ToArrayAsync();
 
 var single = await query.FirstOrDefaultAsync(i => i.Id == "recMH8Vt92AadXO8i");
 

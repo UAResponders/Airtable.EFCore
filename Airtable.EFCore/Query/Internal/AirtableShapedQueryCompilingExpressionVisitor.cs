@@ -395,7 +395,6 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
 
         public async IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
-            AirtableListRecordsResponse? response = null;
             _airtableQueryContext.InitializeStateManager(_standalone);
 
             var formulaExpr = _selectExpression.FilterByFormula;
@@ -421,7 +420,7 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
                             throw new InvalidOperationException("Airtable response is null");
 
                         if (!record.Success)
-                            throw new InvalidOperationException("Airtable error", response.AirtableApiError);
+                            throw new InvalidOperationException("Airtable error", record.AirtableApiError);
 
                         yield return _shaper(_airtableQueryContext, record.Record);
                         yield break;
@@ -441,11 +440,12 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
                 };
 
             var returned = 0;
+            AirtableListRecordsResponse? response = null;
 
             do
             {
                 var toGet = limit == null
-                    ? 100
+                    ? null
                     : (limit - returned);
 
                 if (toGet == 0) yield break;
