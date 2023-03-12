@@ -6,10 +6,13 @@ namespace Airtable.EFCore;
 
 public static class EntityBuilderExtensions
 {
-    public static void ToTable(this IConventionEntityTypeBuilder builder, string table)
+    public static void ToTable(this IConventionEntityTypeBuilder builder, string table, bool fromDataAnnotation)
     {
-        builder.Metadata.SetAnnotation(AirtableAnnotationNames.TableName, table);
+        builder.Metadata.SetAnnotation(AirtableAnnotationNames.TableName, table, fromDataAnnotation);
     }
+
+    public static void ToTable(this IConventionEntityTypeBuilder builder, string table)
+        => builder.ToTable(table, fromDataAnnotation: false);
 
     public static void ToTable(this EntityTypeBuilder builder, string table)
     {

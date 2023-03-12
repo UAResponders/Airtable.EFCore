@@ -8,12 +8,11 @@ namespace Airtable.EFCore.Metadata.Conventions;
 
 internal sealed class ColumnAttributeConvention : PropertyAttributeConventionBase<ColumnAttribute>
 {
-      public ColumnAttributeConvention(
-        ProviderConventionSetBuilderDependencies dependencies)
-        : base(dependencies)
+    public ColumnAttributeConvention(
+      ProviderConventionSetBuilderDependencies dependencies)
+      : base(dependencies)
     {
     }
-
 
     /// <summary>
     ///     Called after a property is added to the entity type with an attribute on the associated CLR property or field.
@@ -28,12 +27,12 @@ internal sealed class ColumnAttributeConvention : PropertyAttributeConventionBas
         MemberInfo clrMember,
         IConventionContext context)
     {
-        if (!string.IsNullOrWhiteSpace(attribute.Name))
+        if (!String.IsNullOrWhiteSpace(attribute.Name))
         {
             propertyBuilder.SetColumnName(attribute.Name);
         }
 
-        if (!string.IsNullOrWhiteSpace(attribute.TypeName))
+        if (!String.IsNullOrWhiteSpace(attribute.TypeName))
         {
             propertyBuilder.SetColumnName(attribute.TypeName);
         }
