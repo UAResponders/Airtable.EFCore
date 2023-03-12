@@ -9,6 +9,13 @@ public sealed class FinanceDbContext : DbContext
     }
 
     public DbSet<DbTransaction> Transactions { get; set; } = null!;
+    public DbSet<DbArticleInRequest> ArticleInRequests { get; set; } = null!;
+}
+
+[Table("Articles in Requests")]
+public class DbArticleInRequest
+{
+    public string Id { get; set; }
 }
 
 public class DbTransaction

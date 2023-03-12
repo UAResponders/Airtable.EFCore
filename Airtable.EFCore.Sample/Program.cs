@@ -24,15 +24,16 @@ var db = scope.ServiceProvider.GetRequiredService<TestDbContext>();
 
 //var manufacturerExistsNameAndId = await db.Manufacturers.Select(i => new { i.ContactName, Record = i.Id }).FirstOrDefaultAsync();
 
-var query = db.Manufacturers;
-var sanManufacturer = await query.Take(3).ToArrayAsync();
+var query = await db.ProductInventory.Take(5).ToArrayAsync();
 
-var single = await query.Where(i=>i.Name == "Satsuma Leather Goods").FirstOrDefaultAsync();
+//var sanManufacturer = await query.Take(3).ToArrayAsync();
 
-sanManufacturer[0].Name = "asdfdegwegwgew";
-await db.Entry(sanManufacturer[0]).ReloadAsync();
+//var single = await query.Where(i => i.Name == "Satsuma Leather Goods").FirstOrDefaultAsync();
 
-await db.SaveChangesAsync();
+//sanManufacturer[0].Name = "asdfdegwegwgew";
+//await db.Entry(sanManufacturer[0]).ReloadAsync();
+
+//await db.SaveChangesAsync();
 
 Console.WriteLine("Done");
 
@@ -47,7 +48,6 @@ public class TestDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<DbProductInventory>().ToTable("Product Inventory");
         base.OnModelCreating(modelBuilder);
     }
 }
@@ -62,6 +62,7 @@ public class DbManufacturer
     public AirtableAttachment Image { get; set; }
 }
 
+[Table("Product Inventory")]
 public class DbProductInventory
 {
     public string Id { get; set; }
