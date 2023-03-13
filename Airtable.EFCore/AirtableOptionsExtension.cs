@@ -41,6 +41,10 @@ internal sealed class AirtableOptionsExtension : IDbContextOptionsExtension
         return new AirtableOptionsExtension(this) { ApiKey = apiKey };
     }
 
+    public override int GetHashCode() => HashCode.Combine(ApiKey, BaseId);
+    public override bool Equals(object? obj) => Equals(obj as AirtableOptionsExtension);
+    public bool Equals(AirtableOptionsExtension? other) => other != null && Object.Equals(other?.ApiKey, ApiKey) && Object.Equals(other.BaseId, BaseId);
+
     private sealed class ExtensionInfo : DbContextOptionsExtensionInfo
     {
         private string? _logFragment;
