@@ -53,8 +53,9 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
             return new JsonSerializerOptions(JsonSerializerDefaults.Web)
             {
                 Converters = {
-                    new JsonStringEnumConverter()
-                }
+                    new JsonStringEnumConverter(),
+
+                },
             };
         }
 
@@ -249,7 +250,13 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
         {
             if (jsonElement.ValueKind == JsonValueKind.Array)
             {
-                return jsonElement.EnumerateArray().FirstOrDefault().Deserialize<T>(jsonSerializerOptions);
+                if (jsonElement.GetArrayLength() == 0) return default;
+                jsonElement = jsonElement[0];
+            }
+
+            if (jsonElement.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+            {
+                return default;
             }
 
             return jsonElement.Deserialize<T>(jsonSerializerOptions);
