@@ -20,9 +20,9 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
     private abstract class AirtableProjectionBindingRemovingVisitorBase : ExpressionVisitor
     {
         private static readonly MethodInfo _dictionaryTryGetValueMethod =
-            typeof(Dictionary<string, object>)
+            typeof(IDictionary<string, object>)
                 .GetMethod(
-                    nameof(Dictionary<string, object>.TryGetValue))
+                    nameof(IDictionary<string, object>.TryGetValue))
                 ?? throw new InvalidOperationException("Could not find method TryGetValue");
 
         private static readonly MethodInfo _visitorReadSingleValueMethod =
@@ -78,7 +78,7 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
                         var projectionExpression = ((UnaryExpression)binaryExpression.Right).Operand;
                         if (projectionExpression is ProjectionBindingExpression projectionBindingExpression)
                         {
-                            var projection = GetProjection(projectionBindingExpression);
+                            var projection = GetProjectionRequired(projectionBindingExpression);
                             projectionExpression = projection.Expression;
                         }
                         else if (projectionExpression is UnaryExpression convertExpression
@@ -106,7 +106,7 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
                         EntityProjectionExpression entityProjectionExpression;
                         if (newExpression.Arguments[0] is ProjectionBindingExpression projectionBindingExpression)
                         {
-                            var projection = GetProjection(projectionBindingExpression);
+                            var projection = GetProjectionRequired(projectionBindingExpression);
                             entityProjectionExpression = (EntityProjectionExpression)projection.Expression;
                         }
                         else
@@ -133,7 +133,7 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
         {
             if (node is ProjectionBindingExpression projectionBindingExpression)
             {
-                var projection = GetProjection(projectionBindingExpression);
+                var projection = GetProjectionRequired(projectionBindingExpression);
 
                 if (projection.Expression is TablePropertyReferenceExpression tableProperty)
                 {
@@ -163,7 +163,7 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
                 Expression innerExpression;
                 if (methodCallExpression.Arguments[0] is ProjectionBindingExpression projectionBindingExpression)
                 {
-                    var projection = GetProjection(projectionBindingExpression);
+                    var projection = GetProjectionRequired(projectionBindingExpression);
 
                     innerExpression = Expression.Convert(
                         CreateReadRecordExpression(_recordParameter, projection.Alias),
@@ -185,7 +185,7 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
         {
             var resultVariable = Expression.Variable(type);
             var jsonElementObj = Expression.Variable(typeof(object));
-            var fields = Expression.Variable(typeof(Dictionary<string, object>));
+            var fields = Expression.Variable(typeof(IDictionary<string, object>));
             var isArray = type != typeof(string) && typeof(IEnumerable).IsAssignableFrom(type);
             var readMethod = isArray ? _visitorReadRawMethod : _visitorReadSingleValueMethod;
 
@@ -269,6 +269,7 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
 
         protected abstract ProjectionExpression? GetProjection(ProjectionBindingExpression projectionBindingExpression);
 
+        protected ProjectionExpression GetProjectionRequired(ProjectionBindingExpression projectionBindingExpression) => GetProjection(projectionBindingExpression) ?? throw new InvalidOperationException($"Projection not found for expression {projectionBindingExpression}");
     }
 
     private sealed class AirtableProjecttionBindingRemovingVisitor : AirtableProjectionBindingRemovingVisitorBase

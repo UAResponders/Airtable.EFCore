@@ -3,7 +3,6 @@ using System.Linq.Expressions;
 using Airtable.EFCore.Query.Internal.MethodTranslators;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -16,8 +15,6 @@ internal sealed class AirtableProjectionBindingExpressionVisitor : ExpressionVis
     private bool _clientEval;
     private readonly Dictionary<ProjectionMember, Expression> _projectionMapping = new();
     private readonly Stack<ProjectionMember> _projectionMembers = new();
-    private readonly Dictionary<ParameterExpression, CollectionShaperExpression> _collectionShaperMapping = new();
-    private readonly Stack<INavigation> _includedNavigations = new();
     private readonly IFormulaExpressionFactory _formulaExpressionFactory;
     private readonly IMethodCallTranslatorProvider _methodCallTranslatorProvider;
 

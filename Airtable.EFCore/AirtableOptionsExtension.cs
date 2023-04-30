@@ -10,8 +10,8 @@ internal sealed class AirtableOptionsExtension : IDbContextOptionsExtension
     private DbContextOptionsExtensionInfo? _info;
     public DbContextOptionsExtensionInfo Info => _info ??= new ExtensionInfo(this);
 
-    public string BaseId { get; init; }
-    public string ApiKey { get; init; }
+    public string? BaseId { get; init; }
+    public string? ApiKey { get; init; }
 
     public AirtableOptionsExtension()
     {
@@ -43,7 +43,7 @@ internal sealed class AirtableOptionsExtension : IDbContextOptionsExtension
 
     public override int GetHashCode() => HashCode.Combine(ApiKey, BaseId);
     public override bool Equals(object? obj) => Equals(obj as AirtableOptionsExtension);
-    public bool Equals(AirtableOptionsExtension? other) => other != null && Object.Equals(other?.ApiKey, ApiKey) && Object.Equals(other.BaseId, BaseId);
+    public bool Equals(AirtableOptionsExtension? other) => other != null && Object.Equals(other.ApiKey, ApiKey) && Object.Equals(other.BaseId, BaseId);
 
     private sealed class ExtensionInfo : DbContextOptionsExtensionInfo
     {

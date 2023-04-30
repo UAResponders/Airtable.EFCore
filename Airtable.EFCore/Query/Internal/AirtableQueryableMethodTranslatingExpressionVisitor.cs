@@ -24,11 +24,6 @@ internal sealed class AirtableQueryableMethodTranslatingExpressionVisitor : Quer
         _methodCallTranslator = methodCallTranslator;
     }
 
-    protected override ShapedQueryExpression CreateShapedQueryExpression(Type elementType)
-    {
-        throw new NotImplementedException();
-    }
-
     protected override ShapedQueryExpression CreateShapedQueryExpression(IEntityType entityType)
     {
         var selectExpression = new SelectExpression(entityType);
