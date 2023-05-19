@@ -20,9 +20,9 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
     private abstract class AirtableProjectionBindingRemovingVisitorBase : ExpressionVisitor
     {
         private static readonly MethodInfo _dictionaryTryGetValueMethod =
-            typeof(Dictionary<string, object>)
+            typeof(IDictionary<string, object>)
                 .GetMethod(
-                    nameof(Dictionary<string, object>.TryGetValue))
+                    nameof(IDictionary<string, object>.TryGetValue))
                 ?? throw new InvalidOperationException("Could not find method TryGetValue");
 
         private static readonly MethodInfo _visitorReadSingleValueMethod =
@@ -185,7 +185,7 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
         {
             var resultVariable = Expression.Variable(type);
             var jsonElementObj = Expression.Variable(typeof(object));
-            var fields = Expression.Variable(typeof(Dictionary<string, object>));
+            var fields = Expression.Variable(typeof(IDictionary<string, object>));
             var isArray = type != typeof(string) && typeof(IEnumerable).IsAssignableFrom(type);
             var readMethod = isArray ? _visitorReadRawMethod : _visitorReadSingleValueMethod;
 
