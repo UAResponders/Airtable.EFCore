@@ -448,6 +448,16 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
 
             var returned = 0;
             AirtableListRecordsResponse? response = null;
+            List<Sort>? sortDescriptors = null;
+
+            if(_selectExpression.Sort.Count > 0)
+            {
+                sortDescriptors = new List<Sort>();
+                foreach (var (field, descending) in _selectExpression.Sort)
+                {
+                    sortDescriptors.Add(new Sort { Field = field.Name, Direction = descending ? SortDirection.Desc : SortDirection.Asc });
+                }
+            }
 
             do
             {
@@ -463,7 +473,8 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
                     maxRecords: toGet,
                     filterByFormula: formula,
                     view: _selectExpression.View,
-                    offset: response?.Offset);
+                    offset: response?.Offset,
+                    sort: sortDescriptors);
 
                 if (response is null)
                     throw new InvalidOperationException("Airtable response is null");

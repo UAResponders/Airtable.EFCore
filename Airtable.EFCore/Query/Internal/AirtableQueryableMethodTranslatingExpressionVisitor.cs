@@ -24,6 +24,7 @@ internal sealed class AirtableQueryableMethodTranslatingExpressionVisitor : Quer
         _methodCallTranslator = methodCallTranslator;
     }
 
+    [Obsolete]
     protected override ShapedQueryExpression CreateShapedQueryExpression(Type elementType)
     {
         throw new NotImplementedException();
@@ -188,7 +189,20 @@ internal sealed class AirtableQueryableMethodTranslatingExpressionVisitor : Quer
 
     protected override ShapedQueryExpression? TranslateOrderBy(ShapedQueryExpression source, LambdaExpression keySelector, bool ascending)
     {
-        throw new NotImplementedException();
+        var translation = TranslateLambdaExpression(source, keySelector);
+        if(translation != null)
+        {
+            if(translation is not TablePropertyReferenceExpression tablePropertyReferenceExpression)
+            {
+                throw new InvalidOperationException("Only direct column references are allowed for ordering");
+            }
+
+            ((SelectExpression)source.QueryExpression).ApplyOrdering(tablePropertyReferenceExpression, !ascending);
+
+            return source;
+        }
+
+        return null;
     }
 
     protected override ShapedQueryExpression? TranslateReverse(ShapedQueryExpression source)
@@ -281,5 +295,22 @@ internal sealed class AirtableQueryableMethodTranslatingExpressionVisitor : Quer
         queryExpr.AddPredicate(result);
 
         return source;
+    }
+
+    private FormulaExpression TranslateLambdaExpression(
+            ShapedQueryExpression shapedQueryExpression,
+            LambdaExpression lambdaExpression)
+    {
+        var select = (SelectExpression)shapedQueryExpression.QueryExpression;
+        var lambdaBody = RemapLambdaBody(shapedQueryExpression.ShaperExpression, lambdaExpression);
+
+        return TranslateExpression(lambdaBody, select.EntityType);
+    }
+
+    private FormulaExpression TranslateExpression(Expression expression, IEntityType entityType)
+    {
+        var translator = new AirtableFormulaTranslatorExpressionVisitor(_formulaExpressionFactory, entityType, _methodCallTranslator);
+        var translation = translator.Translate(expression) ?? throw new InvalidOperationException($"Failed to translate {expression}");
+        return translation;
     }
 }

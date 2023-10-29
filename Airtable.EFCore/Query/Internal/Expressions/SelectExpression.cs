@@ -7,17 +7,17 @@ namespace Airtable.EFCore.Query.Internal;
 
 internal sealed class SelectExpression : Expression
 {
-    private const string RootAlias = "root";
+    private const string _rootAlias = "root";
 
     private IDictionary<ProjectionMember, Expression> _projectionMapping = new Dictionary<ProjectionMember, Expression>();
     private readonly List<ProjectionExpression> _projection = new();
+    private readonly List<(TablePropertyReferenceExpression ordering, bool descending)> _orderings = new();
 
-    private FormulaExpression? _filterByFormula;
     public SelectExpression(IEntityType entityType)
     {
         Table = entityType.GetTableName() ?? entityType.Name;
         EntityType = entityType;
-        FromExpression = new RootReferenceExpression(entityType, RootAlias);
+        FromExpression = new RootReferenceExpression(entityType, _rootAlias);
         _projectionMapping[new ProjectionMember()] = new EntityProjectionExpression(entityType, FromExpression);
     }
 
@@ -26,11 +26,12 @@ internal sealed class SelectExpression : Expression
     public string? View { get; set; }
     public string Table { get; }
     public Expression? Limit { get; set; }
-    public FormulaExpression? FilterByFormula => _filterByFormula;
+    public FormulaExpression? FilterByFormula { get; private set; }
     public override Type Type => typeof(object);
     public IEntityType EntityType { get; }
     public RootReferenceExpression FromExpression { get; }
     public IReadOnlyList<ProjectionExpression> Projection => _projection;
+    public IReadOnlyList<(TablePropertyReferenceExpression ordering, bool descending)> Sort => _orderings;
 
     public IEnumerable<string> GetFields()
     {
@@ -56,20 +57,20 @@ internal sealed class SelectExpression : Expression
 
     public void AddPredicate(FormulaExpression formula)
     {
-        if (_filterByFormula == null)
+        if (FilterByFormula == null)
         {
-            _filterByFormula = formula;
+            FilterByFormula = formula;
             return;
         }
 
-        if (_filterByFormula is FormulaCallExpression callExpression && callExpression.FormulaName == "AND")
+        if (FilterByFormula is FormulaCallExpression callExpression && callExpression.FormulaName == "AND")
         {
             var args =
                 formula is FormulaCallExpression callExpressionInner && callExpressionInner.FormulaName == "AND"
                 ? callExpression.Arguments.AddRange(callExpressionInner.Arguments)
                 : callExpression.Arguments.Add(formula);
 
-            _filterByFormula = new FormulaCallExpression(
+            FilterByFormula = new FormulaCallExpression(
                 "AND",
                 args,
                 typeof(bool));
@@ -77,9 +78,9 @@ internal sealed class SelectExpression : Expression
             return;
         }
 
-        _filterByFormula = new FormulaCallExpression(
+        FilterByFormula = new FormulaCallExpression(
             "AND",
-            ImmutableList.Create(_filterByFormula, formula),
+            ImmutableList.Create(FilterByFormula, formula),
             typeof(bool));
     }
 
@@ -137,7 +138,7 @@ internal sealed class SelectExpression : Expression
 
         var currentAlias = baseAlias;
         var counter = 0;
-        while (_projection.Any(pe => string.Equals(pe.Alias, currentAlias, StringComparison.OrdinalIgnoreCase)))
+        while (_projection.Any(pe => String.Equals(pe.Alias, currentAlias, StringComparison.OrdinalIgnoreCase)))
         {
             currentAlias = $"{baseAlias}{counter++}";
         }
@@ -146,4 +147,6 @@ internal sealed class SelectExpression : Expression
 
         return _projection.Count - 1;
     }
+
+    internal void ApplyOrdering(TablePropertyReferenceExpression selector, bool descending) => _orderings.Add((selector, descending));
 }
