@@ -5,18 +5,18 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Airtable.EFCore.Metadata.Conventions;
 
-internal sealed class TableNameAttributeConvention : EntityTypeAttributeConventionBase<TableAttribute>
+internal sealed class TableNameAttributeConvention : TypeAttributeConventionBase<TableAttribute>
 {
     public TableNameAttributeConvention(ProviderConventionSetBuilderDependencies dependencies) : base(dependencies)
     {
     }
 
     protected override void ProcessEntityTypeAdded(
-        IConventionEntityTypeBuilder entityTypeBuilder, 
-        TableAttribute attribute, 
+        IConventionEntityTypeBuilder entityTypeBuilder,
+        TableAttribute attribute,
         IConventionContext<IConventionEntityTypeBuilder> context)
     {
-        if(!String.IsNullOrWhiteSpace(attribute.Name))
+        if (!String.IsNullOrWhiteSpace(attribute.Name))
         {
             entityTypeBuilder.ToTable(attribute.Name, fromDataAnnotation: true);
         }

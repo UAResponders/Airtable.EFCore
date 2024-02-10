@@ -297,10 +297,10 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
     {
         private int _currentEntityIndex;
 
-        [return: NotNullIfNotNull("node")]
+        [return: NotNullIfNotNull(nameof(node))]
         public override Expression? Visit(Expression? node)
         {
-            if (node is EntityShaperExpression shaperExpression)
+            if (node is StructuralTypeShaperExpression shaperExpression)
             {
                 _currentEntityIndex++;
 
@@ -450,7 +450,7 @@ internal sealed class AirtableShapedQueryCompilingExpressionVisitor : ShapedQuer
             AirtableListRecordsResponse? response = null;
             List<Sort>? sortDescriptors = null;
 
-            if(_selectExpression.Sort.Count > 0)
+            if (_selectExpression.Sort.Count > 0)
             {
                 sortDescriptors = new List<Sort>();
                 foreach (var (field, descending) in _selectExpression.Sort)

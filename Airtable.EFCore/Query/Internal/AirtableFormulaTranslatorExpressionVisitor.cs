@@ -36,7 +36,7 @@ internal sealed class AirtableFormulaTranslatorExpressionVisitor : ExpressionVis
     {
         if (node.Method.IsGenericMethod && node.Method.GetGenericMethodDefinition() == _efPropertyRef)
         {
-            var shaper = node.Arguments[0] as EntityShaperExpression;
+            var shaper = node.Arguments[0] as StructuralTypeShaperExpression;
             var property = node.Arguments[1].GetConstantValue<string>();
 
             if (_entityType.GetProperty(property).IsPrimaryKey())
@@ -59,7 +59,7 @@ internal sealed class AirtableFormulaTranslatorExpressionVisitor : ExpressionVis
 
     protected override Expression VisitExtension(Expression node)
     {
-        if (node is EntityShaperExpression)
+        if (node is StructuralTypeShaperExpression)
         {
             return new RootReferenceExpression(_entityType, "shaper");
         }
@@ -69,7 +69,7 @@ internal sealed class AirtableFormulaTranslatorExpressionVisitor : ExpressionVis
 
     protected override Expression VisitMember(MemberExpression node)
     {
-        if (node.Expression is EntityShaperExpression)
+        if (node.Expression is StructuralTypeShaperExpression)
         {
             if (node.Member is PropertyInfo propertyInfo)
             {

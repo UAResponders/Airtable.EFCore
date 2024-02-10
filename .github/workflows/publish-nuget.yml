@@ -14,15 +14,15 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 6.0.x   
+        dotnet-version: 8.0.x   
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build -c Release --no-restore
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test -c Release --no-build --verbosity normal
     - name: publish
-      run: dotnet pack ./Airtable.EFCore/Airtable.EFCore.csproj --no-build --verbosity normal --output ./obj/output
+      run: dotnet pack -c Release ./Airtable.EFCore/Airtable.EFCore.csproj --no-build --verbosity normal --output ./obj/output
     - name: Publish artifact
       uses: actions/upload-artifact@v2
       with:
@@ -40,7 +40,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 8.0.x
         source-url: https://nuget.pkg.github.com/uaresponders/index.json
       env:
         NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}} 
@@ -61,7 +61,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 8.0.x
     - name: Push generated package to Nuget.org
       run: dotnet nuget push ./obj/output/*.nupkg --skip-duplicate --source https://api.nuget.org/v3/index.json --api-key ${NUGET_API_KEY}
       env:
