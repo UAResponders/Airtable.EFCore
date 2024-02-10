@@ -6,16 +6,18 @@ namespace Airtable.EFCore.Query.Internal;
 
 public sealed class FromViewQueryRootExpression : QueryRootExpression, IEquatable<FromViewQueryRootExpression?>, IPrintableExpression
 {
-    public FromViewQueryRootExpression(IEntityType entityType, string view) : base(entityType)
+    public FromViewQueryRootExpression(IEntityType entityType, string view) : base(entityType.ClrType)
     {
+        EntityType = entityType;
         View = view;
     }
 
     public string View { get; }
 
+    public IEntityType EntityType { get; }
+
     protected override void Print(ExpressionPrinter expressionPrinter)
     {
-        base.Print(expressionPrinter);
         expressionPrinter.Append($".FromView({View})");
     }
 

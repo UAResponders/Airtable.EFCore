@@ -1,6 +1,5 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using System.ComponentModel.DataAnnotations.Schema;
-using Airtable.EFCore;
 using AirtableApiClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -8,32 +7,31 @@ using Microsoft.Extensions.DependencyInjection;
 
 Console.WriteLine("Hello, World!");
 
-
 var services = new ServiceCollection();
 
 var config = new ConfigurationBuilder().AddUserSecrets<TestDbContext>().Build();
 
-services.AddDbContext<TestDbContext>(o => o.UseAirtable(config.GetSection("BaseId").Value, config.GetSection("ApiKey").Value));
+services.AddDbContext<TestDbContext>(o => o.UseAirtable(config.GetSection("BaseId").Value!, config.GetSection("ApiKey").Value!));
 var sp = services.BuildServiceProvider();
 
 var scope = sp.CreateScope();
 var db = scope.ServiceProvider.GetRequiredService<TestDbContext>();
 
-//var manufacturerExists = await db.Manufacturers.FirstOrDefaultAsync();
-//var manufacturerExistsName = await db.Manufacturers.Where(i=>String.Equals(i.ContactName, "AAAAAa", StringComparison.OrdinalIgnoreCase)).FirstOrDefaultAsync();
+var manufacturerExists = await db.Manufacturers.FirstOrDefaultAsync();
+var manufacturerExistsName = await db.Manufacturers.Where(i => String.Equals(i.ContactName, "AAAAAa", StringComparison.OrdinalIgnoreCase)).FirstOrDefaultAsync();
 
-//var manufacturerExistsNameAndId = await db.Manufacturers.Select(i => new { i.ContactName, Record = i.Id }).FirstOrDefaultAsync();
+var manufacturerExistsNameAndId = await db.Manufacturers.Select(i => new { i.ContactName, Record = i.Id }).FirstOrDefaultAsync();
 
-var query = await db.ProductInventory.Take(5).ToArrayAsync();
+var query = db.Manufacturers.Take(5);
 
-//var sanManufacturer = await query.Take(3).ToArrayAsync();
+var sanManufacturer = await query.Take(3).ToArrayAsync();
 
-//var single = await query.Where(i => i.Name == "Satsuma Leather Goods").FirstOrDefaultAsync();
+var single = await query.Where(i => i.Name == "Satsuma Leather Goods").FirstOrDefaultAsync();
 
-//sanManufacturer[0].Name = "asdfdegwegwgew";
+sanManufacturer[0].Name = "_______qrqwrq";
 //await db.Entry(sanManufacturer[0]).ReloadAsync();
 
-//await db.SaveChangesAsync();
+await db.SaveChangesAsync();
 
 Console.WriteLine("Done");
 

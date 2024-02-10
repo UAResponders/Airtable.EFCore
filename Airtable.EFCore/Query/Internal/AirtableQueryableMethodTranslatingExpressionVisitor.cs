@@ -24,12 +24,6 @@ internal sealed class AirtableQueryableMethodTranslatingExpressionVisitor : Quer
         _methodCallTranslator = methodCallTranslator;
     }
 
-    [Obsolete]
-    protected override ShapedQueryExpression CreateShapedQueryExpression(Type elementType)
-    {
-        throw new NotImplementedException();
-    }
-
     protected override ShapedQueryExpression CreateShapedQueryExpression(IEntityType entityType)
     {
         var selectExpression = new SelectExpression(entityType);
@@ -50,7 +44,7 @@ internal sealed class AirtableQueryableMethodTranslatingExpressionVisitor : Quer
     private static ShapedQueryExpression CreateShapedQueryExpression(IEntityType entityType, Expression queryExpression)
         => new(
             queryExpression,
-            new EntityShaperExpression(
+            new StructuralTypeShaperExpression(
                 entityType,
                 new ProjectionBindingExpression(queryExpression, new ProjectionMember(), typeof(ValueBuffer)),
                 false));
@@ -190,9 +184,9 @@ internal sealed class AirtableQueryableMethodTranslatingExpressionVisitor : Quer
     protected override ShapedQueryExpression? TranslateOrderBy(ShapedQueryExpression source, LambdaExpression keySelector, bool ascending)
     {
         var translation = TranslateLambdaExpression(source, keySelector);
-        if(translation != null)
+        if (translation != null)
         {
-            if(translation is not TablePropertyReferenceExpression tablePropertyReferenceExpression)
+            if (translation is not TablePropertyReferenceExpression tablePropertyReferenceExpression)
             {
                 throw new InvalidOperationException("Only direct column references are allowed for ordering");
             }

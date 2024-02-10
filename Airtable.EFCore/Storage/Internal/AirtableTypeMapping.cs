@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore.Storage;
+﻿using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Storage.Json;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Airtable.EFCore.Storage.Internal;
@@ -13,8 +15,20 @@ internal sealed class AirtableTypeMapping : CoreTypeMapping
     {
     }
 
-    public override CoreTypeMapping Clone(ValueConverter? converter)
+    public override CoreTypeMapping WithComposedConverter(ValueConverter? converter, ValueComparer? comparer = null, ValueComparer? keyComparer = null, CoreTypeMapping? elementMapping = null, JsonValueReaderWriter? jsonValueReaderWriter = null)
     {
-        return new AirtableTypeMapping(Parameters.WithComposedConverter(converter));
+        return new AirtableTypeMapping(
+            new CoreTypeMappingParameters(
+                ClrType,
+                converter ?? Converter,
+                comparer ?? Comparer,
+                keyComparer ?? KeyComparer,
+                ProviderValueComparer,
+                null,
+                elementMapping ?? ElementTypeMapping,
+                jsonValueReaderWriter ?? JsonValueReaderWriter));
     }
+
+    protected override CoreTypeMapping Clone(CoreTypeMappingParameters parameters)
+        => new AirtableTypeMapping(parameters);
 }

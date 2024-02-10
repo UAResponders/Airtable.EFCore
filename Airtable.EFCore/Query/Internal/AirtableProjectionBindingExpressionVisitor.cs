@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Airtable.EFCore.Query.Internal.MethodTranslators;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -16,8 +16,6 @@ internal sealed class AirtableProjectionBindingExpressionVisitor : ExpressionVis
     private bool _clientEval;
     private readonly Dictionary<ProjectionMember, Expression> _projectionMapping = new();
     private readonly Stack<ProjectionMember> _projectionMembers = new();
-    private readonly Dictionary<ParameterExpression, CollectionShaperExpression> _collectionShaperMapping = new();
-    private readonly Stack<INavigation> _includedNavigations = new();
     private readonly IFormulaExpressionFactory _formulaExpressionFactory;
     private readonly IMethodCallTranslatorProvider _methodCallTranslatorProvider;
 
@@ -56,7 +54,7 @@ internal sealed class AirtableProjectionBindingExpressionVisitor : ExpressionVis
         _projectionMembers.Clear();
         _projectionMapping.Clear();
 
-        result = MatchTypes(result, expression.Type);
+        result = MatchTypes(result, expression.Type) ?? throw new InvalidOperationException("Failed to translate projection bindings");
 
         return result;
     }
@@ -76,7 +74,7 @@ internal sealed class AirtableProjectionBindingExpressionVisitor : ExpressionVis
         if (expression
             is NewExpression
             or MemberInitExpression
-            or EntityShaperExpression)
+            or StructuralTypeShaperExpression)
         {
             return base.Visit(expression);
         }
@@ -179,7 +177,7 @@ internal sealed class AirtableProjectionBindingExpressionVisitor : ExpressionVis
     {
         switch (extensionExpression)
         {
-            case EntityShaperExpression entityShaperExpression:
+            case StructuralTypeShaperExpression entityShaperExpression:
             {
                 var projectionBindingExpression = (ProjectionBindingExpression)entityShaperExpression.ValueBufferExpression;
                 //VerifySelectExpression(projectionBindingExpression);
@@ -235,8 +233,11 @@ internal sealed class AirtableProjectionBindingExpressionVisitor : ExpressionVis
 
 
 
-    private static Expression MatchTypes(Expression expression, Type targetType)
+    [return: NotNullIfNotNull(nameof(expression))]
+    private static Expression? MatchTypes(Expression? expression, Type targetType)
     {
+        if (expression == null) return null;
+
         if (targetType != expression.Type
             && targetType.TryGetSequenceType() == null)
         {
