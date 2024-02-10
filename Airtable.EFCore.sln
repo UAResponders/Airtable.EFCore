@@ -3,11 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.32414.318
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Airtable.EFCore", "Airtable.EFCore\Airtable.EFCore.csproj", "{FAC79D4C-FCED-4008-8444-0CAA660B4D4D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Airtable.EFCore", "Airtable.EFCore\Airtable.EFCore.csproj", "{FAC79D4C-FCED-4008-8444-0CAA660B4D4D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Airtable.EFCore.Sample", "Airtable.EFCore.Sample\Airtable.EFCore.Sample.csproj", "{5088C674-B54E-4DE4-872B-CB3F268F7C6D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Airtable.EFCore.Tests", "Airtable.EFCore.Tests\Airtable.EFCore.Tests.csproj", "{DDE6104F-18C6-4660-B0A8-FE7FBED4EAFA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Airtable.EFCore.Tests", "Airtable.EFCore.Tests\Airtable.EFCore.Tests.csproj", "{DDE6104F-18C6-4660-B0A8-FE7FBED4EAFA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{83BA4A12-CD2F-426C-AB6B-818A86E7CDB3}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\main.yml = .github\workflows\main.yml
+		.github\workflows\publish-nuget.yml = .github\workflows\publish-nuget.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

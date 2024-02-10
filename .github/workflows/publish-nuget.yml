@@ -14,7 +14,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 6.0.x   
+        dotnet-version: 8.0.x   
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
@@ -40,7 +40,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 8.0.x
         source-url: https://nuget.pkg.github.com/uaresponders/index.json
       env:
         NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}} 
@@ -61,7 +61,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 8.0.x
     - name: Push generated package to Nuget.org
       run: dotnet nuget push ./obj/output/*.nupkg --skip-duplicate --source https://api.nuget.org/v3/index.json --api-key ${NUGET_API_KEY}
       env:
