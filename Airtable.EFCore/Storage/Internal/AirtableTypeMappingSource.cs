@@ -38,6 +38,11 @@ internal sealed class AirtableTypeMappingSource : TypeMappingSource
             return new AirtableTypeMapping(clr);
         }
 
+        if(clr == typeof(string[]))
+        {
+            return new AirtableTypeMapping(clr);
+        }
+
         return base.FindMapping(mappingInfo);
     }
 }

@@ -1,5 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using System.ComponentModel.DataAnnotations.Schema;
+using Airtable.EFCore.Metadata;
 using AirtableApiClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -16,6 +17,12 @@ var sp = services.BuildServiceProvider();
 
 var scope = sp.CreateScope();
 var db = scope.ServiceProvider.GetRequiredService<TestDbContext>();
+
+var product = await db.ProductInventory.FirstOrDefaultAsync();
+
+product.Manufacturer = "recMH8Vt92AadXO8i";
+
+await db.SaveChangesAsync();
 
 var manufacturerExists = await db.Manufacturers.FirstOrDefaultAsync();
 var manufacturerExistsName = await db.Manufacturers.Where(i => String.Equals(i.ContactName, "AAAAAa", StringComparison.OrdinalIgnoreCase)).FirstOrDefaultAsync();
@@ -70,6 +77,9 @@ public class DbProductInventory
 
     [Column("Product Name")]
     public string ProductName { get; set; }
+
+    [SingleValueArray]
+    public string? Manufacturer { get; set; }
 }
 
 public enum ProductType

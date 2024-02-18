@@ -1,9 +1,9 @@
 ﻿using Airtable.EFCore.Infrastructure;
-using Airtable.EFCore.Metadata.Conventions;
 using AirtableApiClient;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.EntityFrameworkCore.Update;
 
 namespace Airtable.EFCore.Storage.Internal;
@@ -32,6 +32,11 @@ internal sealed class AirtableDatabase : Database
 
             if (value is AirtableAttachment attachment)
                 value = new[] { attachment };
+
+            if (item.GetValueConverter() is ValueConverter converter)
+            {
+                value = converter.ConvertToProvider(value);
+            }
 
             result.AddField(name, value);
         }
@@ -64,7 +69,7 @@ internal sealed class AirtableDatabase : Database
                     tasks.Add(_airtableBase.DeleteRecord(tableName, recordId ?? throw new InvalidOperationException("Record id is null")));
                     break;
                 case Microsoft.EntityFrameworkCore.EntityState.Modified:
-                    tasks.Add(_airtableBase.UpdateRecord(tableName, GetFields(item, setProps.Where(i => item.IsModified(i))), recordId));
+                    tasks.Add(Update(tableName, GetFields(item, setProps.Where(i => item.IsModified(i))), recordId));
                     break;
                 case Microsoft.EntityFrameworkCore.EntityState.Added:
                     tasks.Add(Create(tableName, keyProp, item, GetFields(item, setProps)));
@@ -80,6 +85,13 @@ internal sealed class AirtableDatabase : Database
         }
 
         return tasks.Count;
+    }
+
+    private async Task Update(string tableName, Fields fields, string? recordId)
+    {
+        var result = await _airtableBase.UpdateRecord(tableName, fields, recordId);
+
+        if (!result.Success) throw result.AirtableApiError;
     }
 
     private async Task Create(string tableName, IProperty primaryKey, IUpdateEntry updateEntry, Fields fields)
